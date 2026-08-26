@@ -1,0 +1,147 @@
+package main
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// TestSafeRepositoryPathRejectsTraversal protects the desktop filesystem boundary.
+func TestSafeRepositoryPathRejectsTraversal(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	if _, pathError := SafeRepositoryPath(repositoryPath, "../outside"); pathError == nil {
+		testingContext.Fatal("expected repository traversal to be rejected")
+	}
+}
+
+// TestDefaultWorkspacePrefersExistingConventions keeps first launch useful.
+func TestDefaultWorkspacePrefersExistingConventions(testingContext *testing.T) {
+	userHome := testingContext.TempDir()
+	githubPath := filepath.Join(userHome, "Github")
+	if makeError := os.Mkdir(githubPath, 0o755); makeError != nil {
+		testingContext.Fatal(makeError)
+	}
+	if workspace := DefaultWorkspace(userHome); workspace != githubPath {
+		testingContext.Fatalf("expected %s, received %s", githubPath, workspace)
+	}
+}
+
+// TestListDirectorySortsDirectoriesFirst keeps the file browser predictable.
+func TestListDirectorySortsDirectoriesFirst(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	if makeError := os.Mkdir(filepath.Join(repositoryPath, ".git"), 0o755); makeError != nil {
+		testingContext.Fatal(makeError)
+	}
+	if makeError := os.Mkdir(filepath.Join(repositoryPath, "source"), 0o755); makeError != nil {
+		testingContext.Fatal(makeError)
+	}
+	if writeError := os.WriteFile(filepath.Join(repositoryPath, "README.md"), []byte("hello"), 0o644); writeError != nil {
+		testingContext.Fatal(writeError)
+	}
+	service := NewRepositoryService(Config{})
+	entries, listError := service.ListDirectory(repositoryPath, "")
+	if listError != nil {
+		testingContext.Fatal(listError)
+	}
+	if len(entries) != 2 || entries[0].Name != "source" || entries[0].Kind != "directory" {
+		testingContext.Fatalf("unexpected directory order: %#v", entries)
+	}
+}
+
+// TestRenderCodeEscapesSource ensures repository files cannot inject UI markup.
+func TestRenderCodeEscapesSource(testingContext *testing.T) {
+	document, renderError := RenderCode("example.html", "<script>alert('no')</script>", "catppuccin-mocha", 28)
+	if renderError != nil {
+		testingContext.Fatal(renderError)
+	}
+	if strings.Contains(document.HTML, "<script>") {
+		testingContext.Fatal("highlighted source contained an executable script element")
+	}
+	if !strings.Contains(document.HTML, "&lt;") {
+		testingContext.Fatal("expected source markup to be escaped")
+	}
+}
+
+// TestMarkdownRouting keeps README rendering separate from syntax highlighting.
+func TestMarkdownRouting(testingContext *testing.T) {
+	if !IsMarkdown("docs/README.md") || !IsMarkdown("guide.markdown") || IsMarkdown("main.go") {
+		testingContext.Fatal("markdown filename routing is incorrect")
+	}
+}
+
+// TestCodexAnalysisCommandPinsReadOnlySandbox guards the provider's safety contract.
+func TestCodexAnalysisCommandPinsReadOnlySandbox(testingContext *testing.T) {
+	commandName, arguments, commandError := AnalysisCommand("codex", "/tmp/repository", "review this")
+	if commandError != nil {
+		testingContext.Fatal(commandError)
+	}
+	joinedArguments := strings.Join(arguments, " ")
+	if commandName != "codex" || !strings.Contains(joinedArguments, "--sandbox read-only") {
+		testingContext.Fatalf("unsafe Codex command: %s %s", commandName, joinedArguments)
+	}
+	if strings.Contains(joinedArguments, "dangerously-bypass") {
+		testingContext.Fatal("Codex command bypassed its sandbox")
+	}
+}
+
+// TestRepositorySearchReturnsTrackedMatches protects the explorer search contract.
+func TestRepositorySearchReturnsTrackedMatches(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	commands := [][]string{{"init"}, {"config", "user.email", "reaper@example.test"}, {"config", "user.name", "Reaper Test"}}
+	for _, arguments := range commands {
+		command := exec.Command("git", arguments...)
+		command.Dir = repositoryPath
+		if outputBytes, commandError := command.CombinedOutput(); commandError != nil {
+			testingContext.Fatalf("git setup failed: %s", outputBytes)
+		}
+	}
+	if writeError := os.WriteFile(filepath.Join(repositoryPath, "main.go"), []byte("package main\n// harvest repositories\n"), 0o644); writeError != nil {
+		testingContext.Fatal(writeError)
+	}
+	addCommand := exec.Command("git", "add", "main.go")
+	addCommand.Dir = repositoryPath
+	if outputBytes, addError := addCommand.CombinedOutput(); addError != nil {
+		testingContext.Fatalf("git add failed: %s", outputBytes)
+	}
+	results, searchError := NewRepositoryService(Config{}).Search(repositoryPath, "harvest", 20)
+	if searchError != nil {
+		testingContext.Fatal(searchError)
+	}
+	if len(results) != 1 || results[0].Path != "main.go" || results[0].Line != 2 {
+		testingContext.Fatalf("unexpected search results: %#v", results)
+	}
+}
+
+// TestSearchFilesMatchesTrackedPaths verifies filename search sees nested files.
+func TestSearchFilesMatchesTrackedPaths(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	commands := [][]string{{"init"}, {"config", "user.email", "test@example.com"}, {"config", "user.name", "Test User"}}
+	for _, commandArguments := range commands {
+		command := exec.Command("git", commandArguments...)
+		command.Dir = repositoryPath
+		if outputBytes, commandError := command.CombinedOutput(); commandError != nil {
+			testingContext.Fatalf("git setup failed: %s", outputBytes)
+		}
+	}
+	if makeError := os.MkdirAll(filepath.Join(repositoryPath, "internal", "search"), 0o755); makeError != nil {
+		testingContext.Fatal(makeError)
+	}
+	trackedPath := filepath.Join(repositoryPath, "internal", "search", "matcher.go")
+	if writeError := os.WriteFile(trackedPath, []byte("package search\n"), 0o644); writeError != nil {
+		testingContext.Fatal(writeError)
+	}
+	addCommand := exec.Command("git", "add", ".")
+	addCommand.Dir = repositoryPath
+	if outputBytes, addError := addCommand.CombinedOutput(); addError != nil {
+		testingContext.Fatalf("git add failed: %s", outputBytes)
+	}
+	results, searchError := NewRepositoryService(Config{}).SearchFiles(repositoryPath, "matcher", 20)
+	if searchError != nil {
+		testingContext.Fatal(searchError)
+	}
+	if len(results) != 1 || results[0].Path != "internal/search/matcher.go" || results[0].Kind != "file" {
+		testingContext.Fatalf("unexpected filename results: %#v", results)
+	}
+}

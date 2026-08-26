@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Abduction
+GenericName=Repository Cockpit
+Comment=Browse, understand, review, and secure local repositories
+Exec=/home/bill/.local/bin/abduction
+Icon=abduction
+Terminal=false
+Categories=Development;IDE;
+Keywords=Git;GitHub;Repository;Code;Security;
+StartupNotify=true
+StartupWMClass=abduction
