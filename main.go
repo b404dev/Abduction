@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"runtime"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -20,7 +21,7 @@ func main() {
 		Height:    900,
 		MinWidth:  1040,
 		MinHeight: 680,
-		Frameless: true,
+		Frameless: runtime.GOOS != "darwin",
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

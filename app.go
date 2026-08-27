@@ -133,6 +133,14 @@ func (app *App) ConfigPath() string {
 	return filepath.Join(ConfigDirectory(), "config.json")
 }
 
+// SelectWorkspace opens the platform folder picker at the current workspace.
+func (app *App) SelectWorkspace() (string, error) {
+	return wailsruntime.OpenDirectoryDialog(app.context, wailsruntime.OpenDialogOptions{
+		Title:            "Choose a repository workspace",
+		DefaultDirectory: app.configuration.Workspace,
+	})
+}
+
 // RefreshRepos rescans the configured workspace for Git repositories.
 func (app *App) RefreshRepos() []Repo {
 	app.repositories.Clear()

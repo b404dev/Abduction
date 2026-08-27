@@ -50,6 +50,8 @@ export function SearchRepositoryFilesPattern(arg1:string,arg2:string,arg3:boolea
 
 export function SearchRepositoryPattern(arg1:string,arg2:string,arg3:boolean):Promise<Array<main.SearchResult>>;
 
+export function SelectWorkspace():Promise<string>;
+
 export function StartAnalysis(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function StartScan(arg1:string,arg2:string):Promise<string>;

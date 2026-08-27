@@ -13,4 +13,18 @@ describe("FirstRunGuide", () => {
     await userEvent.click(screen.getByRole("button", { name: "Begin encounter" }));
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("connects a workspace during first boot", async () => {
+    const onClose = vi.fn();
+    const onBrowse = vi.fn().mockResolvedValue("/Users/test/Github");
+    const onConnect = vi.fn().mockResolvedValue(2);
+    const setupGuide = render(<FirstRunGuide setupRequired workspace="/Users/test/code" onBrowse={onBrowse} onConnect={onConnect} onClose={onClose}/>);
+
+    await userEvent.click(setupGuide.getByRole("button", { name: "Browse…" }));
+    expect((setupGuide.getByRole("textbox", { name: "Repository workspace" }) as HTMLInputElement).value).toBe("/Users/test/Github");
+    await userEvent.click(setupGuide.getByRole("button", { name: "Connect workspace" }));
+
+    expect(onConnect).toHaveBeenCalledWith("/Users/test/Github");
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

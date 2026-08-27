@@ -191,4 +191,10 @@ body { background: var(--depth-canvas); }
 .first-run-guide article span { color:var(--muted);font-size:10px;line-height:1.55; }
 .first-run-guide footer { display:flex;align-items:center;justify-content:space-between;gap:20px; }
 .first-run-guide footer small { color:var(--muted); }
+.first-run-setup { width:min(780px,92vw); }
+.first-run-setup .workspace-setup-field { display:grid;grid-template-columns:1fr;gap:8px;margin:22px 0 0;color:var(--muted);font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase; }
+.first-run-setup .workspace-setup-field>div { display:flex;gap:8px; }
+.first-run-setup .workspace-setup-field input { min-width:0;flex:1;padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--page);color:var(--text);font:12px var(--mono);text-transform:none;letter-spacing:0; }
+.first-run-setup .workspace-setup-message { margin:12px 0 0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--cyan) 30%,var(--border));border-radius:8px;color:var(--text);background:color-mix(in srgb,var(--cyan) 7%,transparent);font-size:11px; }
+.first-run-setup footer>div,.empty-actions { display:flex;gap:8px; }
 @media(max-width:700px){.first-run-guide>div{grid-template-columns:1fr}.first-run-guide{max-height:90vh;overflow:auto}}

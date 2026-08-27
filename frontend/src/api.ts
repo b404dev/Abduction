@@ -4,6 +4,7 @@ interface AbductionBackend {
   Bootstrap(): Promise<Bootstrap>;
   UpdateConfig(configuration: Config): Promise<Bootstrap>;
   ConfigPath(): Promise<string>;
+  SelectWorkspace(): Promise<string>;
   RefreshRepos(): Promise<Repo[]>;
   RepositorySources(): Promise<RepositorySources>;
   CloneRepository(repositoryURL: string): Promise<Repo>;
@@ -76,6 +77,7 @@ export const api = {
   bootstrap: (): Promise<Bootstrap> => cached("bootstrap", () => backend().Bootstrap()),
   updateConfig: (configuration: Config): Promise<Bootstrap> => backend().UpdateConfig(configuration).then((result) => { invalidateAll(); queryCache.set("bootstrap", { value: result, expiresAt: Number.POSITIVE_INFINITY }); return result; }),
   configPath: (): Promise<string> => cached("config-path", () => backend().ConfigPath()),
+  selectWorkspace: (): Promise<string> => backend().SelectWorkspace(),
   refreshRepos: (): Promise<Repo[]> => backend().RefreshRepos().then((repositories) => { queryCache.delete("bootstrap"); return repositories; }),
   repositorySources: (): Promise<RepositorySources> => backend().RepositorySources(),
   cloneRepository: (repositoryURL: string): Promise<Repo> => backend().CloneRepository(repositoryURL).then((repository) => { queryCache.delete("bootstrap"); return repository; }),

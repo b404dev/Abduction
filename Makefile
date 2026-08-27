@@ -1,7 +1,7 @@
 .PHONY: setup dev build test check doctor
 WAILS ?= $(shell go env GOPATH)/bin/wails
 setup:
-	cd frontend && npm install
+	cd frontend && npm install --include=dev
 	@test -x "$(WAILS)" || go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
 dev: setup
 	"$(WAILS)" dev -tags webkit2_41

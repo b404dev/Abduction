@@ -98,6 +98,10 @@ export function SearchRepositoryPattern(arg1, arg2, arg3) {
   return window['go']['main']['App']['SearchRepositoryPattern'](arg1, arg2, arg3);
 }
 
+export function SelectWorkspace() {
+  return window['go']['main']['App']['SelectWorkspace']();
+}
+
 export function StartAnalysis(arg1, arg2, arg3) {
   return window['go']['main']['App']['StartAnalysis'](arg1, arg2, arg3);
 }

@@ -5,6 +5,12 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Added first-boot workspace setup with a native folder picker and recovery UI for empty workspaces.
+- Restored native macOS close, minimize, and full-screen window controls.
+- Ensured Wails production builds install the frontend build toolchain with npm 11.
+
 ## [0.1.0] - 2026-08-27
 
 ### Added
