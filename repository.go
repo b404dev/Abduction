@@ -7,7 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,6 +60,77 @@ func (service *RepositoryService) List() []Repo {
 		return strings.ToLower(repositories[leftIndex].Name) < strings.ToLower(repositories[rightIndex].Name)
 	})
 	return repositories
+}
+
+type githubRepository struct {
+	Name          string `json:"name"`
+	FullName      string `json:"full_name"`
+	Description   string `json:"description"`
+	HTMLURL       string `json:"html_url"`
+	Language      string `json:"language"`
+	PushedAt      string `json:"pushed_at"`
+	DefaultBranch string `json:"default_branch"`
+	Owner         struct {
+		Login string `json:"login"`
+		Type  string `json:"type"`
+	} `json:"owner"`
+}
+
+// Sources groups local checkouts with the authenticated user's GitHub sources.
+func (service *RepositoryService) Sources() RepositorySources {
+	localRepositories := service.List()
+	result := RepositorySources{Yours: localRepositories, Organisations: []Repo{}, Starred: []Repo{}}
+	loginBytes, loginError := exec.Command("gh", "api", "user", "--jq", ".login").Output()
+	if loginError != nil {
+		result.Error = "GitHub sources need an authenticated gh CLI; showing local repositories."
+		return result
+	}
+	login := strings.TrimSpace(string(loginBytes))
+	localByName := make(map[string]Repo)
+	for _, repository := range localRepositories {
+		localByName[strings.ToLower(repository.FullName)] = repository
+	}
+	toRepo := func(remote githubRepository) Repo {
+		if local, found := localByName[strings.ToLower(remote.FullName)]; found {
+			local.Description = remote.Description
+			return local
+		}
+		return Repo{Name: remote.Name, Owner: remote.Owner.Login, FullName: remote.FullName, Branch: remote.DefaultBranch, Language: remote.Language, Updated: remote.PushedAt, GitHubURL: remote.HTMLURL, Description: remote.Description}
+	}
+	load := func(endpoint string) ([]githubRepository, error) {
+		outputBytes, commandError := exec.Command("gh", "api", endpoint).Output()
+		if commandError != nil {
+			return nil, commandError
+		}
+		var repositories []githubRepository
+		return repositories, json.Unmarshal(outputBytes, &repositories)
+	}
+	remoteRepositories, remoteError := load("user/repos?per_page=100&affiliation=owner,organization_member&sort=pushed")
+	if remoteError != nil {
+		result.Error = "GitHub repository sources could not be loaded; showing local repositories."
+		return result
+	}
+	result.Yours = []Repo{}
+	for _, remote := range remoteRepositories {
+		if strings.EqualFold(remote.Owner.Login, login) {
+			result.Yours = append(result.Yours, toRepo(remote))
+		} else if remote.Owner.Type == "Organization" {
+			result.Organisations = append(result.Organisations, toRepo(remote))
+		}
+	}
+	for _, local := range localRepositories {
+		if _, found := localByName[strings.ToLower(local.FullName)]; found && !slices.ContainsFunc(result.Yours, func(repository Repo) bool { return repository.Path == local.Path }) && !slices.ContainsFunc(result.Organisations, func(repository Repo) bool { return repository.Path == local.Path }) {
+			result.Yours = append(result.Yours, local)
+		}
+	}
+	if starredRepositories, starredError := load("user/starred?per_page=100"); starredError == nil {
+		for _, remote := range starredRepositories {
+			result.Starred = append(result.Starred, toRepo(remote))
+		}
+	} else {
+		result.Error = "Starred repositories could not be loaded."
+	}
+	return result
 }
 
 // Clone downloads a remote repository into the configured workspace safely.
@@ -129,14 +202,29 @@ func (service *RepositoryService) ListDirectory(repositoryPath string, relativeP
 
 // Search finds a bounded set of tracked text matches without invoking a shell.
 func (service *RepositoryService) Search(repositoryPath string, query string, limit int) ([]SearchResult, error) {
+	return service.SearchPattern(repositoryPath, query, limit, false)
+}
+
+// SearchPattern searches tracked file contents using either literal text or a regular expression.
+func (service *RepositoryService) SearchPattern(repositoryPath string, query string, limit int, useRegex bool) ([]SearchResult, error) {
 	if !IsGitRepository(repositoryPath) {
 		return nil, errors.New("not a Git repository")
 	}
 	trimmedQuery := strings.TrimSpace(query)
-	if len(trimmedQuery) < 2 {
+	if trimmedQuery == "" || (!useRegex && len(trimmedQuery) < 2) {
 		return []SearchResult{}, nil
 	}
-	command := exec.Command("git", "grep", "-n", "-I", "--full-name", "-e", trimmedQuery, "--")
+	if useRegex {
+		if _, compileError := regexp.Compile(trimmedQuery); compileError != nil {
+			return nil, fmt.Errorf("invalid regular expression: %w", compileError)
+		}
+	}
+	commandArguments := []string{"grep", "-n", "-I", "--full-name"}
+	if useRegex {
+		commandArguments = append(commandArguments, "-E")
+	}
+	commandArguments = append(commandArguments, "-e", trimmedQuery, "--")
+	command := exec.Command("git", commandArguments...)
 	command.Dir = repositoryPath
 	outputBytes, commandError := command.Output()
 	if commandError != nil {
@@ -166,12 +254,27 @@ func (service *RepositoryService) Search(repositoryPath string, query string, li
 
 // SearchFiles finds tracked paths by filename or directory fragment.
 func (service *RepositoryService) SearchFiles(repositoryPath string, query string, limit int) ([]SearchResult, error) {
+	return service.SearchFilesPattern(repositoryPath, query, limit, false)
+}
+
+// SearchFilesPattern finds tracked paths using a literal fragment or regular expression.
+func (service *RepositoryService) SearchFilesPattern(repositoryPath string, query string, limit int, useRegex bool) ([]SearchResult, error) {
 	if !IsGitRepository(repositoryPath) {
 		return nil, errors.New("not a Git repository")
 	}
-	trimmedQuery := strings.ToLower(strings.TrimSpace(query))
-	if len(trimmedQuery) < 2 {
+	trimmedQuery := strings.TrimSpace(query)
+	if trimmedQuery == "" || (!useRegex && len(trimmedQuery) < 2) {
 		return []SearchResult{}, nil
+	}
+	var pathPattern *regexp.Regexp
+	if useRegex {
+		compiledPattern, compileError := regexp.Compile("(?i)" + trimmedQuery)
+		if compileError != nil {
+			return nil, fmt.Errorf("invalid regular expression: %w", compileError)
+		}
+		pathPattern = compiledPattern
+	} else {
+		trimmedQuery = strings.ToLower(trimmedQuery)
 	}
 	command := exec.Command("git", "ls-files", "-z")
 	command.Dir = repositoryPath
@@ -181,7 +284,11 @@ func (service *RepositoryService) SearchFiles(repositoryPath string, query strin
 	}
 	results := make([]SearchResult, 0)
 	for _, trackedPath := range strings.Split(string(outputBytes), "\x00") {
-		if trackedPath == "" || !strings.Contains(strings.ToLower(trackedPath), trimmedQuery) {
+		matches := pathPattern != nil && pathPattern.MatchString(trackedPath)
+		if pathPattern == nil {
+			matches = strings.Contains(strings.ToLower(trackedPath), trimmedQuery)
+		}
+		if trackedPath == "" || !matches {
 			continue
 		}
 		results = append(results, SearchResult{Path: trackedPath, Preview: filepath.Dir(trackedPath), Kind: "file"})
@@ -311,7 +418,7 @@ func (service *RepositoryService) SwitchBranch(repositoryPath string, branch str
 	return RunGit(repositoryPath, "branch", "--show-current"), nil
 }
 
-// OpenInEditor starts the configured editor without blocking Reaper.
+// OpenInEditor starts the configured editor without blocking Abduction.
 func (service *RepositoryService) OpenInEditor(repositoryPath string, relativePath string) error {
 	targetPath, pathError := SafeRepositoryPath(repositoryPath, relativePath)
 	if pathError != nil {

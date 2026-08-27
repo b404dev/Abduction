@@ -19,7 +19,7 @@ import (
 	"github.com/yuin/goldmark/extension"
 )
 
-const maximumReadableFileSize = 2 * 1024 * 1024
+const maximumReadableFileSize = 16 * 1024 * 1024
 
 // CodeService renders repository documents without exposing raw host access to the UI.
 type CodeService struct {
@@ -58,7 +58,7 @@ func (service *CodeService) ReadFile(repositoryPath string, relativePath string,
 		return Document{}, errors.New("cannot read a directory as a file")
 	}
 	if fileInfo.Size() > maximumReadableFileSize {
-		return Document{}, errors.New("file is larger than the 2 MB preview limit")
+		return Document{Path: relativePath, Name: filepath.Base(relativePath), Size: fileInfo.Size(), Binary: true}, nil
 	}
 	sourceBytes, readError := os.ReadFile(filePath)
 	if readError != nil {
@@ -85,7 +85,9 @@ func (service *CodeService) renderMarkdown(name string, relativePath string, sou
 		rendered.WriteString("<p>Markdown rendering failed.</p>")
 	}
 	safeHTML := bluemonday.UGCPolicy().SanitizeBytes(rendered.Bytes())
-	return Document{Path: relativePath, Name: name, Language: "markdown", HTML: string(safeHTML), Source: source, Lines: CountLines(source), Markdown: true}
+	markdownHTML := strings.ReplaceAll(string(safeHTML), "<pre>", `<div class="markdown-code-frame"><button type="button" class="markdown-copy" data-markdown-copy="true" aria-label="Copy code block">Copy</button><pre>`)
+	markdownHTML = strings.ReplaceAll(markdownHTML, "</pre>", "</pre></div>")
+	return Document{Path: relativePath, Name: name, Language: "markdown", HTML: markdownHTML, Source: source, Lines: CountLines(source), Markdown: true}
 }
 
 // RenderCode uses Chroma to produce class-based, line-numbered HTML.
@@ -122,6 +124,9 @@ func ResolveCodeStyle(themeName string) *chroma.Style {
 		"tokyo-night": "tokyonight-night", "tokyo-neon": "tokyonight-night", "tokyo-dusk": "dracula",
 		"matte-black": "monokai", "matte-ember": "monokai", "matte-ice": "github-dark",
 		"hackerman": "doom-one2", "hackerman-amber": "monokai", "hackerman-ghost": "doom-one2",
+		"catppuccin-mocha": "catppuccin-mocha", "catppuccin-macchiato": "catppuccin-macchiato", "catppuccin-frappe": "catppuccin-frappe", "catppuccin-latte": "catppuccin-latte",
+		"everforest": "evergarden", "gruvbox": "gruvbox", "kanagawa": "github-dark", "nord": "nord", "rose-pine": "rose-pine",
+		"lost-mary": "monokai",
 	}
 	style := styles.Get(styleNames[themeName])
 	if style == nil {

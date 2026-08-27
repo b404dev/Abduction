@@ -1,13 +1,13 @@
 export namespace main {
-	
+
 	export class InstallCommand {
 	    manager: string;
 	    command: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new InstallCommand(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.manager = source["manager"];
@@ -18,22 +18,26 @@ export namespace main {
 	    name: string;
 	    version: string;
 	    install: string;
+	    category: string;
+	    languages: string[];
 	    available: boolean;
 	    commands: InstallCommand[];
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Tool(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
 	        this.version = source["version"];
 	        this.install = source["install"];
+	        this.category = source["category"];
+	        this.languages = source["languages"];
 	        this.available = source["available"];
 	        this.commands = this.convertValues(source["commands"], InstallCommand);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -62,11 +66,11 @@ export namespace main {
 	    updated: string;
 	    githubUrl: string;
 	    description: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Repo(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -87,11 +91,11 @@ export namespace main {
 	    glow: number;
 	    radius: number;
 	    glass: number;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.workspace = source["workspace"];
@@ -108,11 +112,11 @@ export namespace main {
 	    tools: Tool[];
 	    platform: string;
 	    version: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Bootstrap(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.config = this.convertValues(source["config"], Config);
@@ -121,7 +125,7 @@ export namespace main {
 	        this.platform = source["platform"];
 	        this.version = source["version"];
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -150,11 +154,11 @@ export namespace main {
 	    connectors: string[];
 	    refs: string;
 	    parents: string[];
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Commit(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.hash = source["hash"];
@@ -168,17 +172,17 @@ export namespace main {
 	        this.parents = source["parents"];
 	    }
 	}
-	
+
 	export class ContributorStat {
 	    name: string;
 	    email: string;
 	    commits: number;
 	    percent: number;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new ContributorStat(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -197,11 +201,11 @@ export namespace main {
 	    lines: number;
 	    markdown: boolean;
 	    binary: boolean;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Document(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
@@ -215,17 +219,17 @@ export namespace main {
 	        this.binary = source["binary"];
 	    }
 	}
-	
+
 	export class LanguageStat {
 	    name: string;
 	    files: number;
 	    bytes: number;
 	    percent: number;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new LanguageStat(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -233,6 +237,100 @@ export namespace main {
 	        this.bytes = source["bytes"];
 	        this.percent = source["percent"];
 	    }
+	}
+	export class LintDiagnostic {
+	    linter: string;
+	    path: string;
+	    line: number;
+	    column: number;
+	    severity: string;
+	    message: string;
+
+	    static createFrom(source: any = {}) {
+	        return new LintDiagnostic(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.linter = source["linter"];
+	        this.path = source["path"];
+	        this.line = source["line"];
+	        this.column = source["column"];
+	        this.severity = source["severity"];
+	        this.message = source["message"];
+	    }
+	}
+	export class LintReport {
+	    linter: string;
+	    diagnostics: LintDiagnostic[];
+	    output: string;
+	    error: string;
+
+	    static createFrom(source: any = {}) {
+	        return new LintReport(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.linter = source["linter"];
+	        this.diagnostics = this.convertValues(source["diagnostics"], LintDiagnostic);
+	        this.output = source["output"];
+	        this.error = source["error"];
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class LinterInfo {
+	    name: string;
+	    available: boolean;
+	    install: string;
+	    commands: InstallCommand[];
+
+	    static createFrom(source: any = {}) {
+	        return new LinterInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.available = source["available"];
+	        this.install = source["install"];
+	        this.commands = this.convertValues(source["commands"], InstallCommand);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class PullRequest {
 	    number: number;
@@ -244,11 +342,11 @@ export namespace main {
 	    url: string;
 	    headBranch: string;
 	    baseBranch: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new PullRequest(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.number = source["number"];
@@ -262,7 +360,43 @@ export namespace main {
 	        this.baseBranch = source["baseBranch"];
 	    }
 	}
-	
+
+	export class RepositorySources {
+	    yours: Repo[];
+	    organisations: Repo[];
+	    starred: Repo[];
+	    error: string;
+
+	    static createFrom(source: any = {}) {
+	        return new RepositorySources(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.yours = this.convertValues(source["yours"], Repo);
+	        this.organisations = this.convertValues(source["organisations"], Repo);
+	        this.starred = this.convertValues(source["starred"], Repo);
+	        this.error = source["error"];
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class RepositoryStats {
 	    commits: number;
 	    branches: number;
@@ -274,11 +408,11 @@ export namespace main {
 	    lastCommit: string;
 	    languages: LanguageStat[];
 	    contributorsByIdentity: ContributorStat[];
-	
+
 	    static createFrom(source: any = {}) {
 	        return new RepositoryStats(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.commits = source["commits"];
@@ -292,7 +426,7 @@ export namespace main {
 	        this.languages = this.convertValues(source["languages"], LanguageStat);
 	        this.contributorsByIdentity = this.convertValues(source["contributorsByIdentity"], ContributorStat);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -316,11 +450,11 @@ export namespace main {
 	    available: boolean;
 	    install: string;
 	    commands: InstallCommand[];
-	
+
 	    static createFrom(source: any = {}) {
 	        return new ScannerInfo(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -328,7 +462,7 @@ export namespace main {
 	        this.install = source["install"];
 	        this.commands = this.convertValues(source["commands"], InstallCommand);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -352,11 +486,11 @@ export namespace main {
 	    line: number;
 	    preview: string;
 	    kind: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new SearchResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
@@ -365,17 +499,17 @@ export namespace main {
 	        this.kind = source["kind"];
 	    }
 	}
-	
+
 	export class TreeEntry {
 	    name: string;
 	    path: string;
 	    kind: string;
 	    size: number;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new TreeEntry(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];

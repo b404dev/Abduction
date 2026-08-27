@@ -19,7 +19,35 @@ func DetectTools() []Tool {
 		{Name: "semgrep", Install: "Static analysis", Commands: PackageCommands("brew install semgrep", "pipx install semgrep", "pipx install semgrep")},
 	}
 	for toolIndex := range tools {
-		binaryPath, lookupError := exec.LookPath(tools[toolIndex].Name)
+		switch tools[toolIndex].Name {
+		case "claude", "codex":
+			tools[toolIndex].Category = "AI providers"
+		case "gitleaks", "osv-scanner", "gosec", "trivy", "semgrep":
+			tools[toolIndex].Category = "Security scanners"
+		default:
+			tools[toolIndex].Category = "Core integration"
+		}
+	}
+	knownTools := make(map[string]bool)
+	for _, tool := range tools {
+		knownTools[tool.Name] = true
+	}
+	for _, linter := range linterRegistry {
+		if knownTools[linter.name] {
+			continue
+		}
+		tools = append(tools, Tool{Name: linter.name, Install: linter.install, Category: "Language linters", Languages: linter.languages, Commands: linter.commands})
+		knownTools[linter.name] = true
+	}
+	for toolIndex := range tools {
+		if tools[toolIndex].Languages == nil {
+			tools[toolIndex].Languages = []string{}
+		}
+		binaryName := tools[toolIndex].Name
+		if linter, found := findLinterByName(tools[toolIndex].Name); found {
+			binaryName = linter.executable()
+		}
+		binaryPath, lookupError := exec.LookPath(binaryName)
 		if lookupError != nil {
 			continue
 		}
@@ -34,6 +62,15 @@ func DetectTools() []Tool {
 		}
 	}
 	return tools
+}
+
+func findLinterByName(name string) (linterSpec, bool) {
+	for _, linter := range linterRegistry {
+		if linter.name == name {
+			return linter, true
+		}
+	}
+	return linterSpec{}, false
 }
 
 // PackageCommands creates the standard package-manager choices shown in the UI.

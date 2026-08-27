@@ -1,53 +1,69 @@
-# reaper desktop
+# Abduction
 
-A native GitHub cockpit for browsing, understanding, reviewing, and securing every repository you work with. Reaper combines a Go host engine with a rich Wails interface for Arch Linux, Ubuntu, and macOS.
+[![CI](https://github.com/b404dev/Abduction/actions/workflows/ci.yml/badge.svg)](https://github.com/b404dev/Abduction/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/b404dev/Abduction)](https://github.com/b404dev/Abduction/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Quick start
+Abduction is a native repository cockpit for browsing, understanding, reviewing, and securing local codebases. It combines a Go host engine with a Wails interface and a distinctly extraterrestrial visual system.
 
-You need Go 1.25+, Node 20+, Git, and the Linux WebKitGTK development package or macOS Xcode command-line tools.
+> Abduction is currently an early `v0.1.0` release. Back up important work and review commands before running them.
+
+## Installation
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/b404dev/Abduction/main/install.sh | bash
+```
+
+The installer detects macOS, Ubuntu/Debian, or Arch-based Linux and the host CPU architecture. It prefers a matching GitHub release, falls back to a source build, installs required platform packages, and adds Abduction to the desktop application launcher.
+
+Review [`install.sh`](install.sh) before piping it to a shell. Set `ABDUCTION_BRANCH` to install another branch.
+
+## What it does
+
+- Fast repository switching, tracked-file exploration, and code search.
+- Rich Markdown rendering and syntax-highlighted source reading.
+- Git history, branch switching, repository statistics, and pull requests.
+- Screen-aware Codex and Claude chat with streaming and cancellation.
+- Local security scans through allowlisted tools.
+- Native editor and GitHub actions.
+- Twenty-two complete visual themes, including Lost Mary.
+- Randomized ASCII abduction splash scenes and UFO loading states.
+
+Optional integrations remain unavailable until their command-line tools are installed. The local code reader does not depend on them.
+
+## Development
+
+You need Go 1.25+, Node.js 20+, Git, and the [Wails platform dependencies](https://wails.io/docs/gettingstarted/installation/). On Linux this includes GTK3 and WebKitGTK 4.1; macOS requires the Xcode command-line tools.
 
 ```sh
 make dev
 ```
 
-That single command installs the frontend dependencies, installs Wails when missing, generates bindings, and starts the desktop app with hot reload. On first run Reaper uses the first existing workspace among `~/Github`, `~/GitHub`, `~/Projects`, `~/projects`, and `~/code`. Point it elsewhere with `REAPER_WORKSPACE_PATH="/your/repositories" make dev`.
-
-Build a release with `make build`. The result is written to `build/bin/reaper` on Linux or a Reaper application bundle on macOS.
-
-## Desktop features
-
-- Compact icon rail with contextual repository shelf.
-- Top-bar repository switching with search and keyboard shortcuts.
-- Safe lazy file-tree browsing.
-- Fast repository-wide tracked-code search.
-- Rich Markdown README and document rendering.
-- Chroma syntax highlighting with line numbers and Catppuccin palettes.
-- Recent Git history plus safe local and remote branch switching.
-- Screen-aware Codex and Claude chat with streaming and cancellation.
-- GitHub pull-request discovery through the authenticated `gh` CLI.
-- Allowlisted gitleaks, OSV-Scanner, gosec, Trivy, and Semgrep runs with archived reports.
-- Native editor and GitHub actions.
-- Host diagnostics for Git, GitHub CLI, Claude, Codex, and security scanners.
-- Reaper, Catppuccin Mocha, Macchiato, Frappé, and Latte themes.
-
-Optional integrations appear as unavailable when their command-line tools are not installed. Reaper's local code reader never depends on them.
-
-## Configuration
-
-Reaper reads `$XDG_CONFIG_HOME/reaper/config.json` on Linux and the equivalent macOS directory:
-
-```json
-{"workspace":"/home/you/Github","editor":"code","theme":"reaper-dark"}
-```
-
-`REAPER_WORKSPACE_PATH` and `REAPER_EDITOR` override the file. Reaper passes editor arguments directly and never invokes a shell.
-
-## Development
+Build and test with:
 
 ```sh
 make test
-make doctor
+make check
 make build
+make doctor
 ```
 
-Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before adding a feature.
+Abduction uses the first existing workspace among `~/Github`, `~/GitHub`, `~/Projects`, `~/projects`, and `~/code`. Override it with `REAPER_WORKSPACE_PATH=/your/repositories`.
+
+## Configuration
+
+Preferences are stored in the platform configuration directory under `reaper/config.json` for compatibility with earlier builds:
+
+```json
+{"workspace":"/home/you/Github","editor":"code","theme":"lost-mary"}
+```
+
+`REAPER_WORKSPACE_PATH` and `REAPER_EDITOR` override the saved values. Editor arguments are passed directly without invoking a shell.
+
+Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) before making structural changes. The sources and editorial rules behind the encounter-themed splash copy are documented in [`docs/UAP_RESEARCH.md`](docs/UAP_RESEARCH.md).
+
+## Contributing and support
+
+Bug reports and focused pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing and [SECURITY.md](SECURITY.md) before reporting a vulnerability. Release history is recorded in [CHANGELOG.md](CHANGELOG.md), and maintainer release steps are in [docs/RELEASING.md](docs/RELEASING.md).
+
+Abduction is available under the [MIT License](LICENSE).

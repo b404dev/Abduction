@@ -1,6 +1,6 @@
 # Architecture
 
-Reaper is a Go desktop application with a Wails system-WebView shell and a minimal React interface. Privileged host behavior stays testable and the framework stays replaceable.
+Abduction is a Go desktop application with a Wails system-WebView shell and a minimal React interface. Privileged host behavior stays testable and the framework stays replaceable.
 
 ```text
 React views
@@ -19,7 +19,7 @@ repository · code · GitHub · tools · analysis · security
 5. Go validates every path and argument before touching the host.
 6. Commands use argument vectors through `exec.Command`; never construct shell command strings.
 7. Outward GitHub actions require an explicit confirmation screen.
-8. Claude and Codex run read-only. Reaper never grants write tools or sandbox bypass flags.
+8. Claude and Codex run read-only. Abduction never grants write tools or sandbox bypass flags.
 9. Long work emits progress events, supports cancellation, and archives partial output.
 10. Theme colours, radius, glow, and spacing come from shared tokens.
 
@@ -45,4 +45,4 @@ The Codex provider uses `codex exec --sandbox read-only --json --cd <repository>
 
 ## Platforms
 
-Linux builds use WebKitGTK 4.1 and are validated on Arch and Ubuntu. macOS uses WKWebView and separate Intel and Apple Silicon release jobs before producing a signed universal bundle. CSS avoids Chromium-only APIs and respects reduced-motion preferences.
+Linux builds use WebKitGTK 4.1 and macOS uses WKWebView. Tagged releases build an Ubuntu AMD64 binary and a macOS universal application bundle in native GitHub-hosted jobs. Windows is not supported. The `v0.1.0` artifacts are not code-signed or notarized. CSS avoids Chromium-only APIs and respects reduced-motion preferences.

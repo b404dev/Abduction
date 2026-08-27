@@ -57,6 +57,9 @@ func IsDarkTheme(themeName string) bool {
 		"tokyo-night": true, "tokyo-neon": true, "tokyo-dusk": true,
 		"matte-black": true, "matte-ember": true, "matte-ice": true,
 		"hackerman": true, "hackerman-amber": true, "hackerman-ghost": true,
+		"catppuccin-mocha": true, "catppuccin-macchiato": true, "catppuccin-frappe": true, "catppuccin-latte": true,
+		"everforest": true, "gruvbox": true, "kanagawa": true, "nord": true, "rose-pine": true,
+		"lost-mary": true,
 	}
 	return darkThemes[themeName]
 }
@@ -101,7 +104,7 @@ func DefaultWorkspace(userHome string) string {
 	return filepath.Join(userHome, "code")
 }
 
-// ConfigDirectory returns Reaper's platform-standard configuration folder.
+// ConfigDirectory returns Abduction's legacy-compatible configuration folder.
 func ConfigDirectory() string {
 	baseDirectory, directoryError := os.UserConfigDir()
 	if directoryError != nil {

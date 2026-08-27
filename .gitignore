@@ -1,3 +1,9 @@
 build/bin
 node_modules
 frontend/dist
+frontend/tsconfig.tsbuildinfo
+frontend/package.json.md5
+/Abduction
+/Reaper
+.DS_Store
+*.log

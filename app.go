@@ -11,6 +11,9 @@ import (
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+// version is overridden from the Git tag in release builds.
+var version = "0.1.0"
+
 // App is the narrow desktop bridge exposed to the web interface.
 type App struct {
 	context       context.Context
@@ -51,7 +54,7 @@ func NewApp() *App {
 	}
 }
 
-// Scanners returns the security tools Reaper knows how to run safely.
+// Scanners returns the security tools Abduction knows how to run safely.
 func (app *App) Scanners() []ScannerInfo {
 	result, _ := app.scanners.Get("host", 24*time.Hour, func() ([]ScannerInfo, error) { return app.security.Scanners(), nil })
 	return result
@@ -64,6 +67,14 @@ func (app *App) StartScan(repositoryPath string, scannerName string) (string, er
 
 // CancelScan terminates one active scanner process.
 func (app *App) CancelScan(jobID string) error { return app.security.Cancel(jobID) }
+
+// Linters reports approved tools compatible with the current file language.
+func (app *App) Linters(language string) []LinterInfo { return Linters(language) }
+
+// RunLinters checks the current file with the user's selected approved tools.
+func (app *App) RunLinters(repositoryPath string, relativePath string, language string, names []string) ([]LintReport, error) {
+	return RunLinters(repositoryPath, relativePath, language, names)
+}
 
 // StartAnalysis runs a read-only Claude or Codex analysis in the repository.
 func (app *App) StartAnalysis(repositoryPath string, provider string, prompt string) (string, error) {
@@ -100,7 +111,7 @@ func (app *App) Bootstrap() Bootstrap {
 		Repos:    repositories,
 		Tools:    tools,
 		Platform: PlatformName(),
-		Version:  "0.1.0",
+		Version:  version,
 	}
 }
 
@@ -129,6 +140,11 @@ func (app *App) RefreshRepos() []Repo {
 	return repositories
 }
 
+// RepositorySources returns the authenticated user's grouped local and GitHub repositories.
+func (app *App) RepositorySources() RepositorySources {
+	return app.repository.Sources()
+}
+
 // CloneRepository clones a URL into the configured workspace and returns it.
 func (app *App) CloneRepository(repositoryURL string) (Repo, error) {
 	repository, cloneError := app.repository.Clone(repositoryURL)
@@ -152,6 +168,16 @@ func (app *App) SearchRepository(repositoryPath string, query string) ([]SearchR
 // SearchRepositoryFiles returns tracked paths matching a filename fragment.
 func (app *App) SearchRepositoryFiles(repositoryPath string, query string) ([]SearchResult, error) {
 	return app.repository.SearchFiles(repositoryPath, query, 200)
+}
+
+// SearchRepositoryPattern returns tracked content matches with optional regex semantics.
+func (app *App) SearchRepositoryPattern(repositoryPath string, query string, useRegex bool) ([]SearchResult, error) {
+	return app.repository.SearchPattern(repositoryPath, query, 200, useRegex)
+}
+
+// SearchRepositoryFilesPattern returns tracked filename matches with optional regex semantics.
+func (app *App) SearchRepositoryFilesPattern(repositoryPath string, query string, useRegex bool) ([]SearchResult, error) {
+	return app.repository.SearchFilesPattern(repositoryPath, query, 200, useRegex)
 }
 
 // ReadOverview renders the repository README or a useful empty state.

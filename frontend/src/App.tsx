@@ -1,23 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, BrainCircuit, Braces, Command, GitBranch, GitPullRequestArrow, Keyboard, Palette, ScrollText, Settings2, ShieldCheck, Wrench, type LucideIcon } from "lucide-react";
+import { BarChart3, BrainCircuit, Braces, ChevronRight, Command, File, Folder, FolderOpen, GitBranch, GitPullRequestArrow, Keyboard, Palette, ScrollText, Settings2, ShieldCheck, Wrench, type LucideIcon } from "lucide-react";
 import { api } from "./api";
-import type { Bootstrap, Commit, Document, InstallCommand, PullRequest, Repo, RepositoryStats, SearchResult, ThemeName, TreeEntry, ViewName } from "./types";
+import type { Bootstrap, Commit, Document, InstallCommand, LinterInfo, LintReport, PullRequest, Repo, RepositorySources, RepositoryStats, SearchResult, ThemeName, TreeEntry, ViewName } from "./types";
 import type { AnalysisEvent, ScanEvent, ScannerInfo } from "./types";
-import { EventsOn } from "../wailsjs/runtime/runtime";
+import { ClipboardSetText, EventsOn } from "../wailsjs/runtime/runtime";
+import { FirstRunGuide } from "./components/FirstRunGuide";
+import { Splash } from "./components/Splash";
+import { markTextMatches, regexError } from "./search";
 
 const themes: { name: ThemeName; label: string; palette: string[] }[] = [
   { name: "reaper-dark", label: "Abduction Night", palette: ["#050713", "#315cff", "#19d9ff", "#a449ff"] },
   { name: "reaper-blood", label: "Abduction Signal", palette: ["#080308", "#ff315f", "#ff784f", "#a84dff"] },
   { name: "reaper-void", label: "Abduction Void", palette: ["#020106", "#7a3cff", "#00e5ff", "#e349ff"] },
-  { name: "tokyo-night", label: "Tokyo Night", palette: ["#1a1b26", "#7aa2f7", "#bb9af7", "#9ece6a"] },
-  { name: "tokyo-neon", label: "Tokyo Neon", palette: ["#080b18", "#2ac3ff", "#ff3dbb", "#adff2f"] },
-  { name: "tokyo-dusk", label: "Tokyo Dusk", palette: ["#171522", "#8b7cff", "#ff7eb6", "#ffc66d"] },
-  { name: "matte-black", label: "Matte Black", palette: ["#090909", "#e68e0d", "#bebebe", "#b91c1c"] },
-  { name: "matte-ember", label: "Matte Ember", palette: ["#070605", "#ff7a18", "#ffd166", "#db2b39"] },
-  { name: "matte-ice", label: "Matte Ice", palette: ["#050708", "#83e9ff", "#d7f6ff", "#5773ff"] },
-  { name: "hackerman", label: "Hackerman", palette: ["#06060c", "#50f872", "#7cf8f7", "#829dd4"] },
-  { name: "hackerman-amber", label: "Hackerman Amber", palette: ["#070603", "#ffbf36", "#ffef9a", "#ff6b2c"] },
-  { name: "hackerman-ghost", label: "Hackerman Ghost", palette: ["#020807", "#2fffc1", "#b8fff1", "#00a8ff"] },
+  { name: "tokyo-night", label: "Orbital Night", palette: ["#1a1b26", "#7aa2f7", "#bb9af7", "#9ece6a"] },
+  { name: "tokyo-neon", label: "Neon Sighting", palette: ["#080b18", "#2ac3ff", "#ff3dbb", "#adff2f"] },
+  { name: "tokyo-dusk", label: "Dusk Encounter", palette: ["#171522", "#8b7cff", "#ff7eb6", "#ffc66d"] },
+  { name: "matte-black", label: "Black Site", palette: ["#090909", "#e68e0d", "#bebebe", "#b91c1c"] },
+  { name: "matte-ember", label: "Crash Site", palette: ["#070605", "#ff7a18", "#ffd166", "#db2b39"] },
+  { name: "matte-ice", label: "Arctic Contact", palette: ["#050708", "#83e9ff", "#d7f6ff", "#5773ff"] },
+  { name: "hackerman", label: "Terminal Contact", palette: ["#06060c", "#50f872", "#7cf8f7", "#829dd4"] },
+  { name: "hackerman-amber", label: "Amber Transmission", palette: ["#070603", "#ffbf36", "#ffef9a", "#ff6b2c"] },
+  { name: "hackerman-ghost", label: "Ghost Signal", palette: ["#020807", "#2fffc1", "#b8fff1", "#00a8ff"] },
+  { name: "catppuccin-mocha", label: "Mocha Nebula", palette: ["#11111b", "#89b4fa", "#cba6f7", "#89dceb"] },
+  { name: "catppuccin-macchiato", label: "Macchiato Orbit", palette: ["#181926", "#8aadf4", "#c6a0f6", "#91d7e3"] },
+  { name: "catppuccin-frappe", label: "Frappé Horizon", palette: ["#232634", "#8caaee", "#ca9ee6", "#99d1db"] },
+  { name: "catppuccin-latte", label: "Daylight Sighting", palette: ["#e6e9ef", "#1e66f5", "#8839ef", "#04a5e5"] },
+  { name: "everforest", label: "Forest Landing", palette: ["#181d20", "#7fbbb3", "#d699b6", "#a7c080"] },
+  { name: "gruvbox", label: "Desert Signal", palette: ["#161616", "#d8a657", "#d3869b", "#89b482"] },
+  { name: "kanagawa", label: "Shogun Night", palette: ["#111116", "#7e9cd8", "#957fb8", "#98bb6c"] },
+  { name: "nord", label: "Polar Beacon", palette: ["#191c23", "#81a1c1", "#b48ead", "#88c0d0"] },
+  { name: "rose-pine", label: "Rosé Landing", palette: ["#faf4ed", "#56949f", "#907aa9", "#d7827e"] },
+  { name: "lost-mary", label: "Lost Mary", palette: ["#070a03", "#ffe600", "#6dff3f", "#ff3b30"] },
 ];
 
 type LogEntry = { id: number; timestamp: string; level: "error"; message: string };
@@ -26,7 +39,7 @@ type AppCommand = { id: string; label: string; detail: string; keys: string[]; i
 const destinations: { name: ViewName; label: string; key: string; icon: LucideIcon }[] = [
   { name: "code", label: "Code", key: "1", icon: Braces }, { name: "history", label: "History", key: "2", icon: GitBranch }, { name: "stats", label: "Stats", key: "3", icon: BarChart3 },
   { name: "reviews", label: "Reviews", key: "4", icon: GitPullRequestArrow }, { name: "security", label: "Security", key: "5", icon: ShieldCheck }, { name: "analysis", label: "Analysis", key: "6", icon: BrainCircuit },
-  { name: "tools", label: "Tools", key: "7", icon: Wrench }, { name: "themes", label: "Themes", key: "8", icon: Palette }, { name: "logs", label: "Logs", key: "9", icon: ScrollText }, { name: "settings", label: "Settings", key: "0", icon: Settings2 },
+  { name: "tools", label: "Dependencies", key: "7", icon: Wrench }, { name: "themes", label: "Themes", key: "8", icon: Palette }, { name: "logs", label: "Logs", key: "9", icon: ScrollText }, { name: "settings", label: "Settings", key: "0", icon: Settings2 },
 ];
 
 // App coordinates the small amount of shared desktop navigation state.
@@ -40,7 +53,8 @@ export default function App() {
   });
   const [error, setError] = useState("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [splashReady, setSplashReady] = useState(false);
+  const [splashReady, setSplashReady] = useState(() => Date.now() - Number(localStorage.getItem("abduction-splash-seen") ?? 0) < 6 * 60 * 60 * 1000);
+  const [guideOpen, setGuideOpen] = useState(() => localStorage.getItem("abduction-guide-seen") !== "1");
   const [commandOpen, setCommandOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -67,11 +81,6 @@ export default function App() {
       }
     }).catch((reason: unknown) => recordError(String(reason)));
   }, [recordError]);
-
-  useEffect(() => {
-    const splashTimer = window.setTimeout(() => setSplashReady(true), 3400);
-    return () => window.clearTimeout(splashTimer);
-  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -116,7 +125,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleGlobalShortcut);
   }, [selectedRepo]);
 
-  if (!splashReady) return <Splash />;
+  if (!splashReady) return <Splash onComplete={() => { localStorage.setItem("abduction-splash-seen", String(Date.now())); setSplashReady(true); }} />;
   if (!bootstrap) return <Loading error={error} />;
   return (
     <div className="shell">
@@ -135,6 +144,7 @@ export default function App() {
       </main>
       {commandOpen ? <CommandPalette commands={commands} onClose={() => setCommandOpen(false)}/> : null}
       {shortcutsOpen ? <ShortcutHelp onClose={() => setShortcutsOpen(false)}/> : null}
+      {guideOpen ? <FirstRunGuide onClose={() => { localStorage.setItem("abduction-guide-seen", "1"); setGuideOpen(false); }}/> : null}
     </div>
   );
 }
@@ -165,28 +175,6 @@ function ShortcutHelp({ onClose }: { onClose: () => void }) {
   return <div className="command-backdrop" onMouseDown={onClose}><section className="shortcut-help" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">Input system</span><h2>Move at thought speed</h2></div><button onClick={onClose} aria-label="Close shortcut help">×</button></header><div>{groups.map((group) => <article key={group.label}><h3>{group.label}</h3>{group.shortcuts.map(([keys, label]) => <div key={keys}><kbd>{keys}</kbd><span>{label}</span></div>)}</article>)}</div><footer>Shortcuts pause automatically while you type in a field.</footer></section></div>;
 }
 
-type AbductionTarget = "code" | "cow" | "person";
-const abductionTargets: AbductionTarget[] = ["code", "cow", "person"];
-const abducteeArt: Record<AbductionTarget, string> = {
-  code: "  </>   { }   01  ",
-  cow: "  (__ )  /\\\n  (oo) /  \\\n /|  |/    \\\n  || ||",
-  person: "    O\n   /|\\\n   / \\",
-};
-
-// Splash chooses a new close-encounter vignette on every application launch.
-function Splash() {
-  const [target] = useState<AbductionTarget>(() => abductionTargets[Math.floor(Math.random() * abductionTargets.length)]);
-  return <main className="splash splash--ascii" aria-label={`Starting Abduction: abducting ${target}`}>
-    <div className="ascii-stars" aria-hidden>{".       *           +       .       *\n      .       +        .      *         .\n  *        .       ·       +       ."}</div>
-    <pre className="ascii-moon" aria-hidden>{"  ▄██▄\n █░░░█\n  ▀██▀"}</pre>
-    <pre className="ascii-craft" aria-hidden>{"          .--------.\n      ___/==========\\___\n  ___/___[::•::•::•::]___\\___\n <___________/\\___________>\n       ▀  ▀  ▀  ▀  ▀"}</pre>
-    <div className="ascii-beam" aria-hidden><span>{"░▒▓█▓▒░"}</span><span>{"░▒▓█▓▒░"}</span><span>{"░▒▓█▓▒░"}</span><span>{"░▒▓█▓▒░"}</span></div>
-    <pre className={`ascii-target ascii-target--${target}`} aria-hidden>{abducteeArt[target]}</pre>
-    <pre className="ascii-woods" aria-hidden>{"    /\\       /\\    /\\          /\\       /\\\n /\\/  \\ /\\ /  \\  /  \\ /\\  /  \\ /\\ /  \\\n/  \\  /  \\  /\\  \/  /  \\  \/  /  \\  /\\  \\\n|||||||||||||||||||||||||||||||||||||||||||||||||||"}</pre>
-    <div className="splash__identity"><h1>[ ABDUCTION ]</h1><p>{target === "code" ? "YOUR CODE HAS BEEN SELECTED" : `${target.toUpperCase()} ENCOUNTER IN PROGRESS`}</p><span>&gt; establishing repository contact_</span></div>
-  </main>;
-}
-
 function UfoLoader({ label }: { label: string }) {
   return <div className="ufo-loader" role="status" aria-label={label}><span className="ufo-loader__craft"><i/><b/></span><span>{label}</span></div>;
 }
@@ -204,12 +192,20 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   const [cloneURL, setCloneURL] = useState("");
   const [cloning, setCloning] = useState(false);
   const [activeRepoIndex, setActiveRepoIndex] = useState(0);
+  const [repoSource, setRepoSource] = useState<"yours" | "organisations" | "starred">("yours");
+  const [repositorySources, setRepositorySources] = useState<RepositorySources>({ yours: repos, organisations: [], starred: [], error: "" });
+  const sourceRepos = repositorySources[repoSource];
   const filteredRepos = useMemo(() => {
     const normalizedQuery = pickerQuery.trim().toLowerCase();
-    return normalizedQuery ? repos.filter((repository) => repository.fullName.toLowerCase().includes(normalizedQuery)) : repos;
-  }, [pickerQuery, repos]);
+    return normalizedQuery ? sourceRepos.filter((repository) => repository.fullName.toLowerCase().includes(normalizedQuery)) : sourceRepos;
+  }, [pickerQuery, sourceRepos]);
 
-  useEffect(() => { setActiveRepoIndex(0); }, [pickerQuery, pickerOpen]);
+  useEffect(() => { setActiveRepoIndex(0); }, [pickerQuery, pickerOpen, repoSource]);
+  useEffect(() => {
+    if (!pickerOpen) return;
+    setRepositorySources((current) => ({ ...current, yours: current.yours.length ? current.yours : repos }));
+    api.repositorySources().then(setRepositorySources).catch((reason: unknown) => onError(String(reason)));
+  }, [pickerOpen, repos, onError]);
 
   useEffect(() => {
     if (!selectedRepo) { setBranches([]); return; }
@@ -233,7 +229,14 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   }, [onSelect, repos, selectedRepo]);
 
   // chooseRepository selects a result and immediately returns focus to reading.
-  function chooseRepository(repository: Repo) { onSelect(repository); setPickerOpen(false); setPickerQuery(""); }
+  function chooseRepository(repository: Repo) {
+    if (!repository.path && repository.githubUrl) {
+      setCloning(true);
+      api.cloneRepository(repository.githubUrl + ".git").then((clonedRepository) => { onCloned(clonedRepository); setPickerOpen(false); setPickerQuery(""); }).catch((reason: unknown) => onError(String(reason))).finally(() => setCloning(false));
+      return;
+    }
+    onSelect(repository); setPickerOpen(false); setPickerQuery("");
+  }
 
   // chooseBranch checks out a known branch and refreshes the active repository context.
   function chooseBranch(branch: string) {
@@ -255,7 +258,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
     if (event.key === "Enter" && filteredRepos[activeRepoIndex]) { event.preventDefault(); chooseRepository(filteredRepos[activeRepoIndex]); }
   }
 
-  return <><header className="titlebar"><BrandIdentity/><div className="top-context"><button className="repo-picker" onClick={() => setPickerOpen(true)}><span>Repository</span><strong>{selectedRepo?.fullName ?? "Select a repository"}</strong><kbd>⌘P</kbd></button><label className="branch-picker"><GitBranch size={15}/><select disabled={!selectedRepo || switchingBranch} value={selectedRepo?.branch ?? ""} onChange={(event) => chooseBranch(event.target.value)} aria-label="Branch">{selectedRepo?.branch && !branches.includes(selectedRepo.branch) ? <option value={selectedRepo.branch}>{selectedRepo.branch}</option> : null}{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select></label></div><div className="titlebar__actions"><button onClick={onCommand} aria-label="Open command palette"><Command size={15}/><kbd>⌘K</kbd></button><button onClick={onShortcuts} aria-label="Show keyboard shortcuts"><Keyboard size={16}/></button><small>{platform} · v{version}</small></div></header>{pickerOpen ? <div className="picker-backdrop" onMouseDown={() => setPickerOpen(false)}><section className="picker" role="dialog" aria-modal="true" aria-label="Open repository" onMouseDown={(event) => event.stopPropagation()}><header><span className="eyebrow">Quick switch</span><h2>Open repository</h2></header><input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} onKeyDown={handlePickerKey} placeholder="Search owner or repository…"/><div className="picker__list" role="listbox">{filteredRepos.map((repository, repositoryIndex) => <button key={repository.path} role="option" aria-selected={repositoryIndex === activeRepoIndex} className={repositoryIndex === activeRepoIndex ? "picker__option--active" : ""} onMouseEnter={() => setActiveRepoIndex(repositoryIndex)} onClick={() => chooseRepository(repository)}><span className="repo__glyph">⌁</span><span><strong>{repository.name}</strong><small>{repository.owner} · {repository.language}</small></span><kbd>{repository.branch || "detached"}</kbd></button>)}</div><div className="clone-box"><div><span className="eyebrow">Add to workspace</span><strong>Clone from URL</strong></div><div><input value={cloneURL} onChange={(event) => setCloneURL(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") cloneRepository(); }} placeholder="https://github.com/owner/repository.git"/><button className="primary" disabled={!cloneURL.trim() || cloning} onClick={cloneRepository}>{cloning ? "Cloning…" : "Clone"}</button></div></div><footer><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></footer></section></div> : null}</>;
+  return <><header className="titlebar"><BrandIdentity/><div className="top-context"><button className="repo-picker" onClick={() => setPickerOpen(true)}><span>Repository</span><strong>{selectedRepo?.fullName ?? "Select a repository"}</strong><kbd>⌘P</kbd></button><label className="branch-picker"><GitBranch size={15}/><select disabled={!selectedRepo || switchingBranch} value={selectedRepo?.branch ?? ""} onChange={(event) => chooseBranch(event.target.value)} aria-label="Branch">{selectedRepo?.branch && !branches.includes(selectedRepo.branch) ? <option value={selectedRepo.branch}>{selectedRepo.branch}</option> : null}{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select></label></div><div className="titlebar__actions"><button onClick={onCommand} aria-label="Open command palette"><Command size={15}/><kbd>⌘K</kbd></button><button onClick={onShortcuts} aria-label="Show keyboard shortcuts"><Keyboard size={16}/></button><small>{platform} · v{version}</small></div></header>{pickerOpen ? <div className="picker-backdrop" onMouseDown={() => setPickerOpen(false)}><section className="picker" role="dialog" aria-modal="true" aria-label="Open repository" onMouseDown={(event) => event.stopPropagation()}><header><span className="eyebrow">Quick switch</span><h2>Open repository</h2></header><div className="repo-source-tabs">{(["yours", "organisations", "starred"] as const).map((source) => <button key={source} className={repoSource === source ? "repo-source-tab repo-source-tab--active" : "repo-source-tab"} onClick={() => setRepoSource(source)}><span>{source === "yours" ? "Your repos" : source === "organisations" ? "Organisations" : "Starred"}</span><b>{repositorySources[source].length}</b></button>)}</div>{repositorySources.error ? <p className="picker-source-error">{repositorySources.error}</p> : null}<input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} onKeyDown={handlePickerKey} placeholder="Search owner or repository…"/><div className="picker__list" role="listbox">{filteredRepos.map((repository, repositoryIndex) => <button key={repository.fullName} role="option" aria-selected={repositoryIndex === activeRepoIndex} className={repositoryIndex === activeRepoIndex ? "picker__option--active" : ""} onMouseEnter={() => setActiveRepoIndex(repositoryIndex)} onClick={() => chooseRepository(repository)} disabled={cloning}><span className="repo__glyph">{repository.path ? "⌁" : "☁"}</span><span><strong>{repository.name}</strong><small>{repository.owner} · {repository.language || "Unknown"}{repository.description ? ` · ${repository.description}` : ""}</small></span><kbd>{repository.path ? repository.branch || "detached" : "clone"}</kbd></button>)}{!filteredRepos.length ? <p className="picker-empty">No repositories in this source.</p> : null}</div><div className="clone-box"><div><span className="eyebrow">Add to workspace</span><strong>Clone from URL</strong></div><div><input value={cloneURL} onChange={(event) => setCloneURL(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") cloneRepository(); }} placeholder="https://github.com/owner/repository.git"/><button className="primary" disabled={!cloneURL.trim() || cloning} onClick={cloneRepository}>{cloning ? "Cloning…" : "Clone"}</button></div></div><footer><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open or clone</span><span><kbd>esc</kbd> close</span></footer></section></div> : null}</>;
 }
 
 // BrandIdentity renders Abduction's compact craft and wordmark.
@@ -287,7 +290,7 @@ function isEditingTarget(target: EventTarget | null): boolean {
 // Rail keeps primary destinations stable while contextual content drills in beside it.
 function Rail({ view, onView, errorCount }: { view: ViewName; onView: (view: ViewName) => void; errorCount: number }) {
   return <nav className="rail" aria-label="Primary navigation"><div className="rail__brand">R</div>{destinations.map((destination) =>
-    <button key={destination.name} className={view === destination.name ? "rail__item rail__item--active" : "rail__item"} onClick={() => onView(destination.name)} aria-label={`${destination.label} (${destination.key})`} aria-current={view === destination.name ? "page" : undefined} data-label={`${destination.label}  ${destination.key}`}><destination.icon className="rail__icon" strokeWidth={1.7}/><span className="rail__label">{destination.label}</span>{destination.name === "logs" && errorCount ? <b className="rail__badge">{Math.min(errorCount, 99)}</b> : null}</button>)}<div className="rail__spacer"/></nav>;
+    <button key={destination.name} className={view === destination.name ? "rail__item rail__item--active" : "rail__item"} onClick={() => onView(destination.name)} aria-label={`${destination.label} (${destination.key})`} aria-current={view === destination.name ? "page" : undefined} data-label={destination.key}><destination.icon className="rail__icon" strokeWidth={1.7}/><span className="rail__label">{destination.label}</span>{destination.name === "logs" && errorCount ? <b className="rail__badge">{Math.min(errorCount, 99)}</b> : null}</button>)}<div className="rail__spacer"/></nav>;
 }
 
 // WorkspaceHeader shows repository context and global appearance controls.
@@ -305,8 +308,11 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   const [chatOpen, setChatOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState<"files" | "content">("files");
+  const [searchRegex, setSearchRegex] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [findQuery, setFindQuery] = useState("");
+  const [findRegex, setFindRegex] = useState(false);
   const [findLine, setFindLine] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const [treeVisible, setTreeVisible] = useState(true);
@@ -314,16 +320,23 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    Promise.all([api.listDirectory(repo.path, ""), api.readOverview(repo.path, theme)]).then(([rootEntries, overview]) => { setEntries(rootEntries); setDocument(overview); setLoading(false); }).catch((reason: unknown) => onError(String(reason)));
+    Promise.all([api.listDirectory(repo.path, ""), api.readOverview(repo.path, theme)]).then(([rootEntries, overview]) => { setEntries(rootEntries); setDocument(overview); }).catch((reason: unknown) => onError(String(reason))).finally(() => setLoading(false));
   }, [repo.path, theme, onError]);
 
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
-    if (trimmedQuery.length < 2) { setSearchResults([]); return; }
-    const searchRequest = searchMode === "files" ? api.searchRepositoryFiles : api.searchRepository;
-    const searchTimer = window.setTimeout(() => searchRequest(repo.path, trimmedQuery).then(setSearchResults).catch((reason: unknown) => onError(String(reason))), 180);
-    return () => window.clearTimeout(searchTimer);
-  }, [repo.path, searchQuery, searchMode, onError]);
+    const minimumLength = searchRegex ? 1 : 2;
+    if (trimmedQuery.length < minimumLength) { setSearchResults([]); setSearchError(""); return; }
+    if (searchRegex) {
+      const validationError = regexError(trimmedQuery);
+      if (validationError) { setSearchResults([]); setSearchError(validationError); return; }
+    }
+    let cancelled = false;
+    setSearchError("");
+    const searchRequest = searchMode === "files" ? api.searchRepositoryFilesPattern : api.searchRepositoryPattern;
+    const searchTimer = window.setTimeout(() => searchRequest(repo.path, trimmedQuery, searchRegex).then((results) => { if (!cancelled) setSearchResults(results); }).catch((reason: unknown) => { if (!cancelled) { setSearchResults([]); setSearchError(String(reason)); } }), 180);
+    return () => { cancelled = true; window.clearTimeout(searchTimer); };
+  }, [repo.path, searchQuery, searchMode, searchRegex]);
 
   useEffect(() => {
     // handleFocusEscape returns from the immersive reader without changing files.
@@ -336,6 +349,7 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
     function handleCodeShortcut(event: KeyboardEvent) {
       if (isEditingTarget(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.key === "/") { event.preventDefault(); searchRef.current?.focus(); }
+      if (event.key === "Tab") { event.preventDefault(); setTreeVisible((visible) => !visible); }
     }
     window.addEventListener("keydown", handleCodeShortcut);
     return () => window.removeEventListener("keydown", handleCodeShortcut);
@@ -359,6 +373,7 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   function openSearchResult(searchResult: SearchResult) {
     setLoading(true);
     setFindQuery(searchResult.kind === "content" ? searchQuery.trim() : "");
+    setFindRegex(searchResult.kind === "content" && searchRegex);
     setFindLine(searchResult.line);
     api.readFile(repo.path, searchResult.path, theme).then((nextDocument) => { setDocument(nextDocument); setLoading(false); }).catch((reason: unknown) => { setLoading(false); onError(String(reason)); });
   }
@@ -379,17 +394,52 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
     if (event.key === "ArrowLeft" && items[currentIndex]?.dataset.kind === "directory" && items[currentIndex]?.dataset.expanded === "true") { event.preventDefault(); items[currentIndex]?.click(); }
   }
 
-  const layoutClass = ["code-layout", chatOpen ? "code-layout--chat" : "", focusMode ? "code-layout--focus" : "", focusMode && !treeVisible ? "code-layout--tree-hidden" : ""].filter(Boolean).join(" ");
-  return <section className={layoutClass}><aside ref={treeRef} className="tree" onKeyDown={handleTreeNavigation}><div className="tree__title"><span>Explorer</span><small>{searchQuery.trim().length >= 2 ? searchResults.length : entries.length}</small></div><div className="search-modes"><button className={searchMode === "files" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("files")}>Files</button><button className={searchMode === "content" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("content")}>In files</button></div><input ref={searchRef} className="tree__search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") { setSearchQuery(""); event.currentTarget.blur(); } }} placeholder={searchMode === "files" ? "Find a tracked filename…" : "Search inside tracked files…"} aria-label="Search repository"/>{searchQuery.trim().length >= 2 ? <div className="search-results">{searchResults.map((searchResult) => <button data-tree-item key={`${searchResult.path}:${searchResult.line}`} onClick={() => openSearchResult(searchResult)}><strong>{searchResult.path}</strong><small>{searchResult.kind === "content" ? `line ${searchResult.line}` : "file"}</small><span>{searchResult.kind === "content" ? searchResult.preview : searchResult.preview === "." ? "Repository root" : searchResult.preview}</span></button>)}{!searchResults.length ? <p>No tracked matches.</p> : null}</div> : <><div className="tree__root"><span className="tree__root-mark">⌁</span><strong>{repo.name}</strong><kbd>/</kbd></div><div className="tree__list"><TreeNodes entries={entries} depth={0} expandedPaths={expandedPaths} childrenByPath={childrenByPath} onOpen={openEntry}/></div></>}</aside><article className="reader">{loading ? <div className="reader__loading">rendering…</div> : document ? <DocumentView document={document} repo={repo} findQuery={findQuery} findLine={findLine} onChat={() => setChatOpen(true)} focusMode={focusMode} treeVisible={treeVisible} onFocus={() => setFocusMode(!focusMode)} onTree={() => setTreeVisible(!treeVisible)} /> : null}</article>{chatOpen && document ? <ChatDrawer repo={repo} document={document} onClose={() => setChatOpen(false)} onError={onError}/> : null}</section>;
+  const layoutClass = ["code-layout", chatOpen ? "code-layout--chat" : "", focusMode ? "code-layout--focus" : "", !treeVisible ? "code-layout--tree-hidden" : ""].filter(Boolean).join(" ");
+  const searchActive = searchQuery.trim().length >= (searchRegex ? 1 : 2);
+  return <section className={layoutClass}>
+    <aside ref={treeRef} className="tree" onKeyDown={handleTreeNavigation}>
+      <div className="tree-search-panel">
+        <div className="tree__title"><span>Explorer</span><div><small>{searchActive ? searchResults.length : entries.length}</small><button onClick={() => setExpandedPaths(new Set())} disabled={!expandedPaths.size} title="Collapse all folders" aria-label="Collapse all folders">−</button></div></div>
+        <div className="search-modes">
+          <button className={searchMode === "files" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("files")}>Filenames</button>
+          <button className={searchMode === "content" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("content")}>In files</button>
+          <button className={searchRegex ? "search-mode search-mode--active search-regex" : "search-mode search-regex"} onClick={() => setSearchRegex((enabled) => !enabled)} aria-pressed={searchRegex} title="Use regular expression">.*</button>
+        </div>
+        <input ref={searchRef} className={searchError ? "tree__search tree__search--error" : "tree__search"} aria-invalid={Boolean(searchError)} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") { setSearchQuery(""); event.currentTarget.blur(); } }} placeholder={searchMode === "files" ? "Find a tracked filename…" : "Search inside tracked files…"} aria-label="Search repository"/>
+        {searchError ? <p className="search-error" role="alert">{searchError}</p> : null}
+      </div>
+      <div className="tree-scroll-region">
+        {searchActive ? <div className="search-results">{searchResults.map((searchResult) => <button data-tree-item key={`${searchResult.path}:${searchResult.line}`} onClick={() => openSearchResult(searchResult)}><strong>{searchResult.path}</strong><small>{searchResult.kind === "content" ? `line ${searchResult.line}` : "file"}</small><span>{searchResult.kind === "content" ? searchResult.preview : searchResult.preview === "." ? "Repository root" : searchResult.preview}</span></button>)}{!searchResults.length && !searchError ? <p>No tracked matches.</p> : null}</div> : <><div className="tree__root"><FolderOpen size={15}/><strong>{repo.name}</strong><kbd>/</kbd></div><div className="tree__list" role="tree" aria-label={`${repo.name} files`}><TreeNodes entries={entries} depth={0} activePath={document?.path ?? ""} expandedPaths={expandedPaths} childrenByPath={childrenByPath} onOpen={openEntry}/></div></>}
+      </div>
+    </aside>
+    <article className="reader">{loading ? <div className="reader__loading">rendering…</div> : document ? <DocumentView document={document} repo={repo} findQuery={findQuery} findRegex={findRegex} findLine={findLine} onChat={() => setChatOpen(true)} focusMode={focusMode} treeVisible={treeVisible} onFocus={() => setFocusMode(!focusMode)} onTree={() => setTreeVisible(!treeVisible)} /> : null}</article>
+    {chatOpen && document ? <ChatDrawer repo={repo} document={document} onClose={() => setChatOpen(false)} onError={onError}/> : null}
+  </section>;
+}
+
+const fileLanguageIcons: Record<string, [string, string]> = {
+  ts:["TS","blue"],tsx:["TX","blue"],js:["JS","yellow"],jsx:["JX","yellow"],go:["GO","cyan"],py:["PY","green"],rs:["RS","orange"],rb:["RB","red"],
+  java:["JV","orange"],kt:["KT","violet"],swift:["SW","orange"],cs:["C#","violet"],c:["C","blue"],h:["H","violet"],cpp:["C+","blue"],hpp:["H+","violet"],
+  sh:[">_","green"],bash:[">_","green"],zsh:[">_","green"],fish:[">_","green"],tf:["TF","violet"],hcl:["HC","violet"],yaml:["Y","red"],yml:["Y","red"],
+  json:["{}","yellow"],jsonc:["{}","yellow"],toml:["TM","orange"],xml:["XM","orange"],html:["HT","orange"],css:["#","blue"],scss:["S","pink"],vue:["V","green"],svelte:["SV","orange"],
+  md:["M↓","blue"],mdx:["MX","blue"],sql:["DB","cyan"],graphql:["GQ","pink"],lua:["LU","blue"],php:["P","violet"],dart:["DT","cyan"],ex:["EX","violet"],exs:["EX","violet"],
+};
+
+function FileLanguageIcon({ name }: { name: string }) {
+  const normalizedName = name.toLowerCase();
+  const special: [string, string] | undefined = normalizedName === "dockerfile" ? ["DK","blue"] : normalizedName === "makefile" ? ["MK","orange"] : normalizedName.startsWith(".env") ? ["E","yellow"] : undefined;
+  const extension = normalizedName.includes(".") ? normalizedName.split(".").pop() ?? "" : "";
+  const icon = special ?? fileLanguageIcons[extension];
+  return icon ? <span className={"tree-language-icon tree-language-icon--" + icon[1]} aria-hidden>{icon[0]}</span> : <File size={14}/>;
 }
 
 // TreeNodes renders a lazy recursive hierarchy while preserving folder context.
-function TreeNodes({ entries, depth, expandedPaths, childrenByPath, onOpen }: { entries: TreeEntry[]; depth: number; expandedPaths: Set<string>; childrenByPath: Record<string, TreeEntry[]>; onOpen: (entry: TreeEntry) => void }) {
-  return <>{entries.map((entry) => { const expanded = expandedPaths.has(entry.path); return <div className="tree-node" key={entry.path}><button data-tree-item data-kind={entry.kind} data-expanded={expanded} aria-expanded={entry.kind === "directory" ? expanded : undefined} className={expanded ? "tree__entry tree__entry--expanded" : "tree__entry"} style={{ paddingLeft: `${8 + depth * 15}px` }} onClick={() => onOpen(entry)}><span className={entry.kind === "directory" ? "tree-caret" : "tree-file-mark"}>{entry.kind === "directory" ? (expanded ? "⌄" : "›") : "·"}</span><span>{entry.name}</span>{entry.kind === "file" ? <small>{formatBytes(entry.size)}</small> : null}</button>{entry.kind === "directory" && expanded ? <div className="tree-children"><TreeNodes entries={childrenByPath[entry.path] ?? []} depth={depth + 1} expandedPaths={expandedPaths} childrenByPath={childrenByPath} onOpen={onOpen}/></div> : null}</div>; })}</>;
+function TreeNodes({ entries, depth, activePath, expandedPaths, childrenByPath, onOpen }: { entries: TreeEntry[]; depth: number; activePath: string; expandedPaths: Set<string>; childrenByPath: Record<string, TreeEntry[]>; onOpen: (entry: TreeEntry) => void }) {
+  return <>{entries.map((entry) => { const expanded = expandedPaths.has(entry.path); const active = entry.kind === "file" && entry.path === activePath; const entryClass = ["tree__entry", entry.kind === "directory" ? "tree__entry--directory" : "tree__entry--file", expanded ? "tree__entry--expanded" : "", active ? "tree__entry--active" : ""].filter(Boolean).join(" "); return <div className="tree-node" key={entry.path} role="treeitem" aria-level={depth + 1} aria-selected={active || undefined} aria-expanded={entry.kind === "directory" ? expanded : undefined}><button data-tree-item data-kind={entry.kind} data-expanded={expanded} className={entryClass} onClick={() => onOpen(entry)}><ChevronRight className="tree-caret" size={13}/><span className="tree-kind-icon">{entry.kind === "directory" ? (expanded ? <FolderOpen size={15}/> : <Folder size={15}/>) : <FileLanguageIcon name={entry.name}/>}</span><span className="tree-entry-name">{entry.name}</span>{entry.kind === "file" ? <small>{formatBytes(entry.size)}</small> : <small>{expanded ? "open" : "folder"}</small>}</button>{entry.kind === "directory" && expanded ? <div className="tree-children" role="group"><TreeNodes entries={childrenByPath[entry.path] ?? []} depth={depth + 1} activePath={activePath} expandedPaths={expandedPaths} childrenByPath={childrenByPath} onOpen={onOpen}/></div> : null}</div>; })}</>;
 }
 
 // DocumentView displays trusted HTML and navigates highlighted search matches.
-function DocumentView({ document, repo, findQuery, findLine, onChat, focusMode, treeVisible, onFocus, onTree }: { document: Document; repo: Repo; findQuery: string; findLine: number; onChat: () => void; focusMode: boolean; treeVisible: boolean; onFocus: () => void; onTree: () => void }) {
+function DocumentView({ document, repo, findQuery, findRegex, findLine, onChat, focusMode, treeVisible, onFocus, onTree }: { document: Document; repo: Repo; findQuery: string; findRegex: boolean; findLine: number; onChat: () => void; focusMode: boolean; treeVisible: boolean; onFocus: () => void; onTree: () => void }) {
   const documentRoot = useRef<HTMLDivElement>(null);
   const [matches, setMatches] = useState<HTMLElement[]>([]);
   const [activeMatch, setActiveMatch] = useState(0);
@@ -397,7 +447,7 @@ function DocumentView({ document, repo, findQuery, findLine, onChat, focusMode, 
   useEffect(() => {
     const rootElement = documentRoot.current;
     if (!rootElement || !findQuery) { setMatches([]); return; }
-    const highlightedMatches = markTextMatches(rootElement, findQuery);
+    const highlightedMatches = markTextMatches(rootElement, findQuery, findRegex);
     let initialMatch = 0;
     if (findLine > 0) {
       const lineElement = rootElement.querySelector(`#line-${findLine}`);
@@ -409,7 +459,7 @@ function DocumentView({ document, repo, findQuery, findLine, onChat, focusMode, 
     setActiveMatch(initialMatch);
     activateSearchMatch(highlightedMatches, initialMatch);
     return () => highlightedMatches.forEach((matchElement) => { const parentElement = matchElement.parentNode; if (parentElement) parentElement.replaceChild(window.document.createTextNode(matchElement.textContent ?? ""), matchElement); });
-  }, [document.html, findQuery, findLine]);
+  }, [document.html, findQuery, findRegex, findLine]);
 
   // moveMatch cycles through highlighted occurrences in either direction.
   function moveMatch(direction: number) {
@@ -419,37 +469,56 @@ function DocumentView({ document, repo, findQuery, findLine, onChat, focusMode, 
     activateSearchMatch(matches, nextMatch);
   }
 
-  return <><header className="reader__head"><div><span className="eyebrow">{document.language}</span><h2>{document.name}</h2></div><div className="reader__meta">{findQuery ? <div className="find-navigation"><strong>{matches.length ? `${activeMatch + 1} / ${matches.length}` : "No matches"}</strong><button onClick={() => moveMatch(-1)} disabled={!matches.length} aria-label="Previous match">↑</button><button onClick={() => moveMatch(1)} disabled={!matches.length} aria-label="Next match">↓</button></div> : null}<span>{document.lines} lines</span><span>{formatBytes(document.size)}</span>{focusMode ? <button className="ghost" onClick={onTree}>{treeVisible ? "Hide tree" : "Show tree"}</button> : null}<button className="ghost chat-button" onClick={onChat}>✣ Ask AI</button><button className="ghost" onClick={onFocus}>{focusMode ? "Exit focus" : "Focus"}</button><button className="ghost" onClick={() => api.openInEditor(repo.path, document.path)}>Edit ↗</button></div></header>{document.binary ? <div className="empty"><h3>Binary file</h3><p>Open this file in your configured editor to inspect it safely.</p></div> : <div ref={documentRoot} className={document.markdown ? "document markdown" : "document code"} dangerouslySetInnerHTML={{ __html: document.html }}/>}</>;
+  async function copyMarkdownCode(event: React.MouseEvent<HTMLDivElement>) {
+    const copyButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-markdown-copy]");
+    if (!copyButton) return;
+    const codeText = copyButton.parentElement?.querySelector("pre code")?.textContent ?? "";
+    if (!codeText) return;
+    try {
+      const copied = await ClipboardSetText(codeText);
+      if (!copied) throw new Error("Native clipboard rejected the copy request");
+    } catch {
+      await navigator.clipboard.writeText(codeText);
+    }
+    copyButton.textContent = "Copied";
+    copyButton.classList.add("markdown-copy--done");
+    window.setTimeout(() => { copyButton.textContent = "Copy"; copyButton.classList.remove("markdown-copy--done"); }, 1400);
+  }
+
+  return <><header className="reader__head"><div><span className="eyebrow">{document.language || "preview"}</span><h2>{document.name}</h2></div><div className="reader__meta">{findQuery ? <div className="find-navigation"><strong>{matches.length ? `${activeMatch + 1} / ${matches.length}` : "No matches"}</strong><button onClick={() => moveMatch(-1)} disabled={!matches.length} aria-label="Previous match">↑</button><button onClick={() => moveMatch(1)} disabled={!matches.length} aria-label="Next match">↓</button></div> : null}<span>{document.lines ? `${document.lines} lines` : "preview unavailable"}</span><span>{formatBytes(document.size)}</span>{focusMode ? <button className="ghost" onClick={onTree}>{treeVisible ? "Hide tree" : "Show tree"}</button> : null}<button className="ghost chat-button" onClick={onChat}>✣ Ask AI</button><button className="ghost" onClick={onFocus}>{focusMode ? "Exit focus" : "Focus"}</button><button className="ghost" onClick={() => api.openInEditor(repo.path, document.path)}>Edit ↗</button></div></header>{!document.binary && document.path ? <LintPanel repo={repo} document={document} onJump={(line) => documentRoot.current?.querySelector(`#line-${line}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}/> : null}{document.binary ? <div className="empty"><h3>Preview unavailable</h3><p>This file is binary or larger than the safe 16 MB in-app preview limit. Open it in your configured editor to inspect it.</p></div> : <div ref={documentRoot} onClick={document.markdown ? copyMarkdownCode : undefined} className={document.markdown ? "document markdown" : "document code"} dangerouslySetInnerHTML={{ __html: document.html }}/>}</>;
 }
 
-// markTextMatches wraps case-insensitive matches without replacing syntax markup.
-function markTextMatches(rootElement: HTMLElement, query: string): HTMLElement[] {
-  const normalizedQuery = query.toLocaleLowerCase();
-  const textWalker = window.document.createTreeWalker(rootElement, NodeFilter.SHOW_TEXT);
-  const textNodes: Text[] = [];
-  while (textWalker.nextNode()) textNodes.push(textWalker.currentNode as Text);
-  const matches: HTMLElement[] = [];
-  textNodes.forEach((textNode) => {
-    const sourceText = textNode.nodeValue ?? "";
-    const normalizedText = sourceText.toLocaleLowerCase();
-    let searchOffset = 0;
-    let matchOffset = normalizedText.indexOf(normalizedQuery, searchOffset);
-    if (matchOffset < 0 || !textNode.parentNode) return;
-    const fragment = window.document.createDocumentFragment();
-    while (matchOffset >= 0) {
-      fragment.append(sourceText.slice(searchOffset, matchOffset));
-      const matchElement = window.document.createElement("mark");
-      matchElement.className = "code-search-match";
-      matchElement.textContent = sourceText.slice(matchOffset, matchOffset + query.length);
-      matches.push(matchElement);
-      fragment.append(matchElement);
-      searchOffset = matchOffset + query.length;
-      matchOffset = normalizedText.indexOf(normalizedQuery, searchOffset);
-    }
-    fragment.append(sourceText.slice(searchOffset));
-    textNode.parentNode.replaceChild(fragment, textNode);
-  });
-  return matches;
+function LintPanel({ repo, document, onJump }: { repo: Repo; document: Document; onJump: (line: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [linters, setLinters] = useState<LinterInfo[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [reports, setReports] = useState<LintReport[]>([]);
+  const [running, setRunning] = useState(false);
+  const [lintError, setLintError] = useState("");
+  const preferenceKey = `abduction-linters:${document.language.toLowerCase()}`;
+
+  useEffect(() => {
+    api.linters(document.language).then((availableLinters) => {
+      setLinters(availableLinters);
+      const saved = JSON.parse(localStorage.getItem(preferenceKey) ?? "[]") as string[];
+      setSelected(saved.filter((name) => availableLinters.some((linter) => linter.name === name)));
+    }).catch((reason: unknown) => setLintError(String(reason)));
+  }, [document.language, preferenceKey]);
+
+  function toggleLinter(name: string) {
+    const nextSelection = selected.includes(name) ? selected.filter((selectedName) => selectedName !== name) : [...selected, name];
+    setSelected(nextSelection);
+    localStorage.setItem(preferenceKey, JSON.stringify(nextSelection));
+  }
+
+  function runLint() {
+    if (!selected.length || running) return;
+    setRunning(true); setReports([]); setLintError("");
+    api.runLinters(repo.path, document.path, document.language, selected).then(setReports).catch((reason: unknown) => setLintError(String(reason))).finally(() => setRunning(false));
+  }
+
+  const diagnostics = reports.flatMap((report) => report.diagnostics);
+  return <section className={open ? "lint-panel lint-panel--open" : "lint-panel"}><button className="lint-panel__toggle" onClick={() => setOpen(!open)}><span>◇ Lint</span><small>{running ? "checking…" : reports.length ? `${diagnostics.length} findings` : document.language}</small><b>{open ? "−" : "+"}</b></button>{open ? <div className="lint-panel__body"><div className="lint-picker"><header><div><span className="eyebrow">Tool selection</span><strong>{document.language} linters</strong></div><button className="primary" disabled={!selected.length || running} onClick={runLint}>{running ? "Linting…" : "Run selected"}</button></header>{linters.length ? linters.map((linter) => <div className="lint-option" key={linter.name}><label><input type="checkbox" checked={selected.includes(linter.name)} disabled={!linter.available || running} onChange={() => toggleLinter(linter.name)}/><span><strong>{linter.name}</strong><small>{linter.available ? "installed · ready" : linter.install}</small></span></label>{linter.available ? null : <InstallPill commands={linter.commands}/>}</div>) : <p>No registered linters for {document.language} yet.</p>}</div><div className="lint-results">{lintError ? <div className="notice">{lintError}</div> : null}{reports.map((report) => <article key={report.linter}><header><strong>{report.linter}</strong><span>{report.error || `${report.diagnostics.length} findings`}</span></header>{report.diagnostics.map((diagnostic, index) => <button key={`${diagnostic.path}:${diagnostic.line}:${index}`} onClick={() => onJump(diagnostic.line)}><b className={`lint-severity lint-severity--${diagnostic.severity}`}>{diagnostic.severity}</b><code>{diagnostic.path}:{diagnostic.line}{diagnostic.column ? `:${diagnostic.column}` : ""}</code><span>{diagnostic.message}</span></button>)}{!report.diagnostics.length && report.output ? <pre>{report.output}</pre> : null}{!report.diagnostics.length && !report.output && !report.error ? <p>Clean. No findings.</p> : null}</article>)}{!reports.length && !running ? <div className="lint-empty">Choose one or more installed tools, then run them against this file.</div> : null}</div></div> : null}</section>;
 }
 
 // activateSearchMatch marks one occurrence active and scrolls it into view.
@@ -641,9 +710,22 @@ function AnalysisView({ repo, tools, onError }: { repo: Repo; tools: Bootstrap["
   return <section className="analysis-view"><aside><span className="eyebrow">Repository review</span><h2>Analysis</h2><p>Run a focused, read-only investigation across {repo.name}. This is separate from screen-aware chat and designed for findings you keep.</p><label><span>Provider</span><select value={provider} onChange={(event) => setProvider(event.target.value)} disabled={running}><option value="codex">Codex</option><option value="claude">Claude</option></select></label>{providerTool && !providerTool.available ? <div className="provider-install"><span>{providerTool.install} is required</span><InstallPill commands={providerTool.commands}/></div> : null}<div className="analysis-presets">{analysisPresets.map((preset) => <button className={preset.name === selectedPreset ? "analysis-preset analysis-preset--active" : "analysis-preset"} key={preset.name} disabled={running} onClick={() => setSelectedPreset(preset.name)}><BrainCircuit size={15}/><span><strong>{preset.name}</strong><small>{preset.prompt ? preset.prompt.split(". ")[0] : "Ask Reaper to investigate anything"}</small></span></button>)}</div>{selectedAnalysis.prompt ? null : <textarea value={customPrompt} onChange={(event) => setCustomPrompt(event.target.value)} placeholder="What should Reaper investigate?" rows={5}/>}<div className="analysis-actions">{running ? <button className="ghost" onClick={cancelAnalysis}>Cancel · {elapsedSeconds}s</button> : <button className="primary" disabled={!providerTool?.available || (!selectedAnalysis.prompt && !customPrompt.trim())} onClick={runAnalysis}>Run analysis</button>}</div></aside><article><header><div><span className="eyebrow">{running ? `Live · ${elapsedSeconds}s` : result ? "Latest result" : "Ready"}</span><h2>{selectedPreset}</h2></div><span className={running ? "analysis-state analysis-state--running" : "analysis-state"}>{running ? "reading repository" : provider}</span></header><pre>{result || "Choose a review preset and run it. Provider prose appears here; JSON event noise and internal tool calls are filtered out."}</pre></article></section>;
 }
 
-// ToolsView explains which optional host integrations are ready to use.
+// ToolsView centralizes every host dependency and its platform install commands.
 function ToolsView({ tools }: { tools: Bootstrap["tools"] }) {
-  return <section className="tools"><div className="section-title"><div><span className="eyebrow">Host integration</span><h2>Toolchain</h2></div></div><div className="tool-grid">{tools.map((tool) => <article className="tool panel" key={tool.name}><span className={tool.available ? "tool__light tool__light--ready" : "tool__light"}/><div><h3>{tool.name}</h3><p>{tool.available ? tool.version || "available" : tool.install}</p></div>{tool.available ? <span className="chip chip--ready">ready</span> : <InstallPill commands={tool.commands}/>}</article>)}</div></section>;
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleTools = normalizedQuery ? tools.filter((tool) => `${tool.name} ${tool.install} ${tool.category} ${(tool.languages ?? []).join(" ")}`.toLowerCase().includes(normalizedQuery)) : tools;
+  const categories = ["Core integration", "AI providers", "Security scanners", "Language linters"];
+  return <section className="tools dependency-view"><header className="dependency-hero"><div><span className="eyebrow">Host tooling</span><h2>Dependencies</h2><p>Every optional integration and install command lives here. Abduction never runs these commands for you—click one to copy it.</p></div><div><strong>{tools.filter((tool) => tool.available).length}/{tools.length}</strong><span>ready</span></div></header><input className="dependency-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a tool or language…" aria-label="Search dependencies"/>{categories.map((category) => { const categoryTools = visibleTools.filter((tool) => tool.category === category); return categoryTools.length ? <section className="dependency-group" key={category}><header><h3>{category}</h3><span>{categoryTools.filter((tool) => tool.available).length}/{categoryTools.length} installed</span></header><div>{categoryTools.map((tool) => <DependencyCard key={tool.name} tool={tool}/>)}</div></section> : null; })}</section>;
+}
+
+function DependencyCard({ tool }: { tool: Bootstrap["tools"][number] }) {
+  const [copiedManager, setCopiedManager] = useState("");
+  function copyCommand(command: InstallCommand) {
+    ClipboardSetText(command.command).then(() => { setCopiedManager(command.manager); window.setTimeout(() => setCopiedManager(""), 1400); });
+  }
+  const languages = tool.languages ?? [];
+  return <article className={tool.available ? "dependency-card dependency-card--ready" : "dependency-card"}><header><span className={tool.available ? "tool__light tool__light--ready" : "tool__light"}/><div><h4>{tool.name}</h4><p>{tool.available ? tool.version || "Installed and ready" : tool.install}</p>{languages.length ? <small>{languages.join(" · ")}</small> : null}</div><b>{tool.available ? "READY" : "OPTIONAL"}</b></header><div className="dependency-commands">{tool.commands.map((command) => <button key={command.manager} onClick={() => copyCommand(command)}><span>{command.manager}</span><code>{command.command}</code><b>{copiedManager === command.manager ? "Copied" : "Copy"}</b></button>)}</div></article>;
 }
 
 // ThemeSwitcher previews and applies complete visual bundles like a desktop theme picker.

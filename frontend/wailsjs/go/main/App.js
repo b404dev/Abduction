@@ -30,6 +30,10 @@ export function ConfigPath() {
   return window['go']['main']['App']['ConfigPath']();
 }
 
+export function Linters(arg1) {
+  return window['go']['main']['App']['Linters'](arg1);
+}
+
 export function ListDirectory(arg1, arg2) {
   return window['go']['main']['App']['ListDirectory'](arg1, arg2);
 }
@@ -62,8 +66,16 @@ export function RefreshRepos() {
   return window['go']['main']['App']['RefreshRepos']();
 }
 
+export function RepositorySources() {
+  return window['go']['main']['App']['RepositorySources']();
+}
+
 export function RepositoryStats(arg1) {
   return window['go']['main']['App']['RepositoryStats'](arg1);
+}
+
+export function RunLinters(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['RunLinters'](arg1, arg2, arg3, arg4);
 }
 
 export function Scanners() {
@@ -76,6 +88,14 @@ export function SearchRepository(arg1, arg2) {
 
 export function SearchRepositoryFiles(arg1, arg2) {
   return window['go']['main']['App']['SearchRepositoryFiles'](arg1, arg2);
+}
+
+export function SearchRepositoryFilesPattern(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SearchRepositoryFilesPattern'](arg1, arg2, arg3);
+}
+
+export function SearchRepositoryPattern(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SearchRepositoryPattern'](arg1, arg2, arg3);
 }
 
 export function StartAnalysis(arg1, arg2, arg3) {

@@ -16,6 +16,8 @@ export function Commits(arg1:string):Promise<Array<main.Commit>>;
 
 export function ConfigPath():Promise<string>;
 
+export function Linters(arg1:string):Promise<Array<main.LinterInfo>>;
+
 export function ListDirectory(arg1:string,arg2:string):Promise<Array<main.TreeEntry>>;
 
 export function OpenInEditor(arg1:string,arg2:string):Promise<void>;
@@ -32,13 +34,21 @@ export function ReadOverview(arg1:string,arg2:string):Promise<main.Document>;
 
 export function RefreshRepos():Promise<Array<main.Repo>>;
 
+export function RepositorySources():Promise<main.RepositorySources>;
+
 export function RepositoryStats(arg1:string):Promise<main.RepositoryStats>;
+
+export function RunLinters(arg1:string,arg2:string,arg3:string,arg4:Array<string>):Promise<Array<main.LintReport>>;
 
 export function Scanners():Promise<Array<main.ScannerInfo>>;
 
 export function SearchRepository(arg1:string,arg2:string):Promise<Array<main.SearchResult>>;
 
 export function SearchRepositoryFiles(arg1:string,arg2:string):Promise<Array<main.SearchResult>>;
+
+export function SearchRepositoryFilesPattern(arg1:string,arg2:string,arg3:boolean):Promise<Array<main.SearchResult>>;
+
+export function SearchRepositoryPattern(arg1:string,arg2:string,arg3:boolean):Promise<Array<main.SearchResult>>;
 
 export function StartAnalysis(arg1:string,arg2:string,arg3:string):Promise<string>;
 

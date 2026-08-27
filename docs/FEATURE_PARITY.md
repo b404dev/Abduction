@@ -1,6 +1,6 @@
-# Repear feature parity
+# Feature parity
 
-This ledger compares the original Repear application with the Reaper desktop rewrite. It exists to keep feature work deliberate while the interface stays simple and supportable.
+This ledger compares the original application with the Abduction desktop rewrite. It exists to keep feature work deliberate while the interface stays simple and supportable.
 
 ## Available now
 
@@ -28,7 +28,7 @@ This ledger compares the original Repear application with the Reaper desktop rew
 
 ## Guardrails
 
-- GitHub organization support uses the authenticated GitHub CLI rather than storing tokens in Reaper.
+- GitHub organization support uses the authenticated GitHub CLI rather than storing tokens in Abduction.
 - Read operations stay automatic; remote writes and review actions always ask for confirmation.
 - New Go functions use descriptive names, plain-English comments, and no single-letter variables.
 - Platform-specific behavior must remain supported on Arch Linux, Ubuntu, and macOS.

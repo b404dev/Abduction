@@ -32,6 +32,14 @@ type Repo struct {
 	Description string `json:"description"`
 }
 
+// RepositorySources groups local and GitHub repositories for the picker.
+type RepositorySources struct {
+	Yours         []Repo `json:"yours"`
+	Organisations []Repo `json:"organisations"`
+	Starred       []Repo `json:"starred"`
+	Error         string `json:"error"`
+}
+
 // TreeEntry describes one direct child in a repository directory.
 type TreeEntry struct {
 	Name string `json:"name"`
@@ -117,11 +125,13 @@ type PullRequest struct {
 	BaseBranch string `json:"baseBranch"`
 }
 
-// Tool describes an optional executable used by Reaper integrations.
+// Tool describes an optional executable used by Abduction integrations.
 type Tool struct {
 	Name      string           `json:"name"`
 	Version   string           `json:"version"`
 	Install   string           `json:"install"`
+	Category  string           `json:"category"`
+	Languages []string         `json:"languages"`
 	Available bool             `json:"available"`
 	Commands  []InstallCommand `json:"commands"`
 }
@@ -146,6 +156,32 @@ type ScannerInfo struct {
 	Available bool             `json:"available"`
 	Install   string           `json:"install"`
 	Commands  []InstallCommand `json:"commands"`
+}
+
+// LinterInfo describes an approved language tool and whether it is installed.
+type LinterInfo struct {
+	Name      string           `json:"name"`
+	Available bool             `json:"available"`
+	Install   string           `json:"install"`
+	Commands  []InstallCommand `json:"commands"`
+}
+
+// LintDiagnostic is a normalized source location emitted by a linter.
+type LintDiagnostic struct {
+	Linter   string `json:"linter"`
+	Path     string `json:"path"`
+	Line     int    `json:"line"`
+	Column   int    `json:"column"`
+	Severity string `json:"severity"`
+	Message  string `json:"message"`
+}
+
+// LintReport retains both normalized diagnostics and the tool's original output.
+type LintReport struct {
+	Linter      string           `json:"linter"`
+	Diagnostics []LintDiagnostic `json:"diagnostics"`
+	Output      string           `json:"output"`
+	Error       string           `json:"error"`
 }
 
 // ScanEvent is one streamed security job update.

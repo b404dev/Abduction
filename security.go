@@ -134,7 +134,7 @@ func findScanner(scannerName string) (scannerSpec, bool) {
 	return scannerSpec{}, false
 }
 
-// archiveScan stores scanner output under Reaper's configuration directory.
+// archiveScan stores scanner output under Abduction's configuration directory.
 func archiveScan(repositoryPath string, scannerName string, lines []string) string {
 	repositoryName := filepath.Base(repositoryPath)
 	reportDirectory := filepath.Join(ConfigDirectory(), "scans", repositoryName)

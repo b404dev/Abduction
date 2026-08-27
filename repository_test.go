@@ -145,3 +145,34 @@ func TestSearchFilesMatchesTrackedPaths(testingContext *testing.T) {
 		testingContext.Fatalf("unexpected filename results: %#v", results)
 	}
 }
+
+func TestRegexSearchMatchesContentAndFilenames(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	for _, commandArguments := range [][]string{{"init"}, {"config", "user.email", "test@example.com"}, {"config", "user.name", "Test User"}} {
+		command := exec.Command("git", commandArguments...)
+		command.Dir = repositoryPath
+		if outputBytes, commandError := command.CombinedOutput(); commandError != nil {
+			testingContext.Fatalf("git setup failed: %s", outputBytes)
+		}
+	}
+	if writeError := os.WriteFile(filepath.Join(repositoryPath, "flight_report.go"), []byte("package report\nconst object = \"tic tac\"\n"), 0o644); writeError != nil {
+		testingContext.Fatal(writeError)
+	}
+	addCommand := exec.Command("git", "add", ".")
+	addCommand.Dir = repositoryPath
+	if outputBytes, addError := addCommand.CombinedOutput(); addError != nil {
+		testingContext.Fatalf("git add failed: %s", outputBytes)
+	}
+	service := NewRepositoryService(Config{})
+	contentResults, contentError := service.SearchPattern(repositoryPath, "tic[ -]tac|tic tac", 20, true)
+	if contentError != nil || len(contentResults) != 1 {
+		testingContext.Fatalf("unexpected regex content results: %#v, %v", contentResults, contentError)
+	}
+	fileResults, fileError := service.SearchFilesPattern(repositoryPath, "^flight_.*\\.go$", 20, true)
+	if fileError != nil || len(fileResults) != 1 || fileResults[0].Path != "flight_report.go" {
+		testingContext.Fatalf("unexpected regex filename results: %#v, %v", fileResults, fileError)
+	}
+	if _, invalidError := service.SearchFilesPattern(repositoryPath, "[", 20, true); invalidError == nil {
+		testingContext.Fatal("invalid filename regex did not return an error")
+	}
+}

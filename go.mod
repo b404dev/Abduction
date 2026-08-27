@@ -1,4 +1,4 @@
-module Reaper
+module github.com/b404dev/Abduction
 
 go 1.25.0
 
