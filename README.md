@@ -1,7 +1,7 @@
 # Abduction
 
-[![CI](https://github.com/b404dev/Abduction/actions/workflows/ci.yml/badge.svg)](https://github.com/b404dev/Abduction/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/b404dev/Abduction)](https://github.com/b404dev/Abduction/releases)
+[![CI](https://github.com/b404dev/Abduction/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/b404dev/Abduction/actions/workflows/ci.yml?query=branch%3Amain)
+[![Release](https://img.shields.io/github/v/release/b404dev/Abduction?cacheSeconds=60)](https://github.com/b404dev/Abduction/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Abduction is a native repository cockpit for browsing, understanding, reviewing, and securing local codebases. It combines a Go host engine with a Wails interface and a distinctly extraterrestrial visual system.
