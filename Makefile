@@ -8,12 +8,12 @@ dev: setup
 build:
 	"$(WAILS)" build -tags webkit2_41
 test:
-	go test ./...
 	cd frontend && npm test
+	cd frontend && npm run build
+	go test ./...
 check: test
 	go vet ./...
 	test -z "$$(gofmt -l -- *.go)"
-	cd frontend && npm run build
 	bash -n install.sh
 doctor:
 	"$(WAILS)" doctor
