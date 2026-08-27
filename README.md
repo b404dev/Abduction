@@ -33,7 +33,7 @@ Optional integrations remain unavailable until their command-line tools are inst
 
 ## Development
 
-You need Go 1.25+, Node.js 20+, Git, and the [Wails platform dependencies](https://wails.io/docs/gettingstarted/installation/). On Linux this includes GTK3 and WebKitGTK 4.1; macOS requires the Xcode command-line tools.
+You need Go 1.25+, Node.js 24+, Git, and the [Wails platform dependencies](https://wails.io/docs/gettingstarted/installation/). On Linux this includes GTK3 and WebKitGTK 4.1; macOS requires the Xcode command-line tools.
 
 ```sh
 make dev

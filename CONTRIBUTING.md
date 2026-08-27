@@ -5,7 +5,7 @@ issue so the approach can be agreed without wasted work.
 
 ## Development setup
 
-Install Go 1.25+, Node.js 20+, Git, and the
+Install Go 1.25+, Node.js 24+, Git, and the
 [Wails platform dependencies](https://wails.io/docs/gettingstarted/installation/)
 for your operating system. Then run:
 
