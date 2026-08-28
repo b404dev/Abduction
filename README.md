@@ -16,7 +16,11 @@ curl -fsSL https://raw.githubusercontent.com/b404dev/Abduction/main/install.sh |
 
 The installer detects macOS, Ubuntu/Debian, or Arch-based Linux and the host CPU architecture. It prefers a matching GitHub release, falls back to a source build, installs required platform packages, and adds Abduction to the desktop application launcher.
 
-Review [`install.sh`](install.sh) before piping it to a shell. Set `ABDUCTION_BRANCH` to install another branch.
+Review [`install.sh`](install.sh) before piping it to a shell. By default it installs the latest published release. To force a source build from a branch, pass `ABDUCTION_BRANCH` to the receiving shell:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/b404dev/Abduction/main/install.sh | ABDUCTION_BRANCH=main bash
+```
 
 ## What it does
 

@@ -3,6 +3,7 @@ set -euo pipefail
 
 readonly REPOSITORY="b404dev/Abduction"
 readonly BRANCH="${ABDUCTION_BRANCH:-main}"
+readonly FORCE_SOURCE="${ABDUCTION_BRANCH:+true}"
 readonly INSTALL_BIN="${HOME}/.local/bin"
 temporary_directory=""
 
@@ -151,7 +152,10 @@ main() {
   temporary_directory="$(mktemp -d "${TMPDIR:-/tmp}/abduction-install.XXXXXX")"
   say "Detected ${host_os}/${host_arch} (${package_family})"
   install_runtime_dependencies
-  if ! try_release_install; then
+  if [[ "${FORCE_SOURCE}" == "true" ]]; then
+    say "Source branch requested; skipping prebuilt releases"
+    build_source
+  elif ! try_release_install; then
     say "No matching release found; building from source"
     build_source
   fi

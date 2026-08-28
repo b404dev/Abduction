@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Made `ABDUCTION_BRANCH` explicitly bypass older prebuilt releases and build the requested source branch.
+
 ## [0.1.2] - 2026-08-28
 
 ### Fixed
