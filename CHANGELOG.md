@@ -23,6 +23,7 @@ All notable changes to Abduction are documented here. This project follows
 - Cached organisation and starred repository catalogues for 30 minutes instead of reloading them whenever the switcher opens.
 - Added `C` as a cloud-repository clone shortcut, enabled GitHub-backed remote branch switching, and routed authenticated GitHub clones through `gh repo clone`.
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
+- Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
 ## [0.1.2] - 2026-08-28
 
