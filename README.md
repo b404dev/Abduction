@@ -6,7 +6,7 @@
 
 Abduction is a native repository cockpit for browsing, understanding, reviewing, and securing local codebases. It combines a Go host engine with a Wails interface and a distinctly extraterrestrial visual system.
 
-> Abduction is currently an early `v0.1.1` release. Back up important work and review commands before running them.
+> Abduction is currently an early `v0.1.2` release. Back up important work and review commands before running them.
 
 ## Installation
 

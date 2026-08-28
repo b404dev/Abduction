@@ -5,6 +5,8 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-28
+
 ### Fixed
 
 - Prevented optional CLI version probes or slow repository discovery from blocking the first-boot connection wizard.
@@ -28,6 +30,7 @@ All notable changes to Abduction are documented here. This project follows
 - Linux and macOS configuration, editor launching, themes, and first-run guidance.
 - Linux and macOS installation support, with tagged release artifacts.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/b404dev/Abduction/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/b404dev/Abduction/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/b404dev/Abduction/releases/tag/v0.1.0

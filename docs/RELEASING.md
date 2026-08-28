@@ -16,8 +16,8 @@ supported release target.
 5. Create and push an annotated semantic-version tag:
 
    ```sh
-   git tag -a v0.1.1 -m "Abduction v0.1.1"
-   git push origin v0.1.1
+   git tag -a v0.1.2 -m "Abduction v0.1.2"
+   git push origin v0.1.2
    ```
 
 6. Confirm both build jobs and the publish job succeed. Smoke-test the attached
