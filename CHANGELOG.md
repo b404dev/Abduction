@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevented optional CLI version probes or slow repository discovery from blocking the first-boot connection wizard.
+
 ## [0.1.1] - 2026-08-27
 
 ### Fixed

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 )
 
 // DetectTools reports the optional host tools that unlock deeper features.
@@ -39,29 +42,47 @@ func DetectTools() []Tool {
 		tools = append(tools, Tool{Name: linter.name, Install: linter.install, Category: "Language linters", Languages: linter.languages, Commands: linter.commands})
 		knownTools[linter.name] = true
 	}
+	var detectionGroup sync.WaitGroup
 	for toolIndex := range tools {
 		if tools[toolIndex].Languages == nil {
 			tools[toolIndex].Languages = []string{}
 		}
-		binaryName := tools[toolIndex].Name
-		if linter, found := findLinterByName(tools[toolIndex].Name); found {
-			binaryName = linter.executable()
-		}
-		binaryPath, lookupError := exec.LookPath(binaryName)
-		if lookupError != nil {
-			continue
-		}
-		tools[toolIndex].Available = true
-		versionCommand := exec.Command(binaryPath, "--version")
-		versionBytes, versionError := versionCommand.CombinedOutput()
-		if versionError == nil {
-			versionLines := strings.Split(strings.TrimSpace(string(versionBytes)), "\n")
-			if len(versionLines) > 0 {
-				tools[toolIndex].Version = versionLines[0]
-			}
-		}
+		detectionGroup.Add(1)
+		go func(index int) {
+			defer detectionGroup.Done()
+			detectTool(&tools[index])
+		}(toolIndex)
 	}
+	detectionGroup.Wait()
 	return tools
+}
+
+// detectTool checks one optional executable without allowing it to stall startup.
+func detectTool(tool *Tool) {
+	detectToolWithTimeout(tool, 1500*time.Millisecond)
+}
+
+// detectToolWithTimeout probes one executable within an explicit deadline.
+func detectToolWithTimeout(tool *Tool, timeout time.Duration) {
+	binaryName := tool.Name
+	if linter, found := findLinterByName(tool.Name); found {
+		binaryName = linter.executable()
+	}
+	binaryPath, lookupError := exec.LookPath(binaryName)
+	if lookupError != nil {
+		return
+	}
+	tool.Available = true
+	probeContext, cancelProbe := context.WithTimeout(context.Background(), timeout)
+	defer cancelProbe()
+	versionBytes, versionError := exec.CommandContext(probeContext, binaryPath, "--version").CombinedOutput()
+	if versionError != nil {
+		return
+	}
+	versionLines := strings.Split(strings.TrimSpace(string(versionBytes)), "\n")
+	if len(versionLines) > 0 {
+		tool.Version = versionLines[0]
+	}
 }
 
 func findLinterByName(name string) (linterSpec, bool) {

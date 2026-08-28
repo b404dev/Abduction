@@ -5,7 +5,6 @@ import (
 	"errors"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -93,19 +92,40 @@ func (app *App) startup(runtimeContext context.Context) {
 
 // Bootstrap returns everything required to paint the first useful screen.
 func (app *App) Bootstrap() Bootstrap {
+	repositoryResults := make(chan []Repo, 1)
+	toolResults := make(chan []Tool, 1)
+	go func() {
+		repositories, _ := app.repositories.Get("workspace", 30*time.Second, func() ([]Repo, error) { return app.repository.List(), nil })
+		repositoryResults <- repositories
+	}()
+	go func() {
+		tools, _ := app.tools.Get("host", 24*time.Hour, func() ([]Tool, error) { return DetectTools(), nil })
+		toolResults <- tools
+	}()
 	var repositories []Repo
 	var tools []Tool
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(2)
-	go func() {
-		defer waitGroup.Done()
-		repositories, _ = app.repositories.Get("workspace", 30*time.Second, func() ([]Repo, error) { return app.repository.List(), nil })
-	}()
-	go func() {
-		defer waitGroup.Done()
-		tools, _ = app.tools.Get("host", 24*time.Hour, func() ([]Tool, error) { return DetectTools(), nil })
-	}()
-	waitGroup.Wait()
+	startupTimer := time.NewTimer(2500 * time.Millisecond)
+	defer startupTimer.Stop()
+	for repositories == nil || tools == nil {
+		select {
+		case repositories = <-repositoryResults:
+			if len(repositories) == 0 {
+				select {
+				case tools = <-toolResults:
+				default:
+					tools = []Tool{}
+				}
+			}
+		case tools = <-toolResults:
+		case <-startupTimer.C:
+			if repositories == nil {
+				repositories = []Repo{}
+			}
+			if tools == nil {
+				tools = []Tool{}
+			}
+		}
+	}
 	return Bootstrap{
 		Config:   app.configuration,
 		Repos:    repositories,
