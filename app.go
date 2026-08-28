@@ -92,11 +92,15 @@ func (app *App) startup(runtimeContext context.Context) {
 
 // Bootstrap returns everything required to paint the first useful screen.
 func (app *App) Bootstrap() Bootstrap {
-	repositoryResults := make(chan []Repo, 1)
+	type repositoryResult struct {
+		repositories []Repo
+		err          error
+	}
+	repositoryResults := make(chan repositoryResult, 1)
 	toolResults := make(chan []Tool, 1)
 	go func() {
-		repositories, _ := app.repositories.Get("workspace", 30*time.Second, func() ([]Repo, error) { return app.repository.List(), nil })
-		repositoryResults <- repositories
+		repositories, repositoryError := app.repositories.Get("workspace-fast", 30*time.Second, app.repository.ListFast)
+		repositoryResults <- repositoryResult{repositories: repositories, err: repositoryError}
 	}()
 	go func() {
 		tools, _ := app.tools.Get("host", 24*time.Hour, func() ([]Tool, error) { return DetectTools(), nil })
@@ -104,11 +108,16 @@ func (app *App) Bootstrap() Bootstrap {
 	}()
 	var repositories []Repo
 	var tools []Tool
+	var bootstrapError string
 	startupTimer := time.NewTimer(2500 * time.Millisecond)
 	defer startupTimer.Stop()
 	for repositories == nil || tools == nil {
 		select {
-		case repositories = <-repositoryResults:
+		case result := <-repositoryResults:
+			repositories = result.repositories
+			if result.err != nil {
+				bootstrapError = result.err.Error()
+			}
 			if len(repositories) == 0 {
 				select {
 				case tools = <-toolResults:
@@ -132,6 +141,7 @@ func (app *App) Bootstrap() Bootstrap {
 		Tools:    tools,
 		Platform: PlatformName(),
 		Version:  version,
+		Error:    bootstrapError,
 	}
 }
 

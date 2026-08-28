@@ -17,6 +17,7 @@ type Bootstrap struct {
 	Tools    []Tool `json:"tools"`
 	Platform string `json:"platform"`
 	Version  string `json:"version"`
+	Error    string `json:"error"`
 }
 
 // Repo describes a local Git checkout displayed in the repository picker.

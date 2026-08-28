@@ -120,6 +120,34 @@ body { background: var(--depth-canvas); }
 @keyframes command-rise { from { opacity:0;transform:translateY(-12px) scale(.985) } }
 @keyframes rail-energy { from { top:-18%;height:32% } to { top:68%;height:46% } }
 @media(max-width:900px){.titlebar__actions small,.titlebar__actions>button:first-child kbd{display:none}.shortcut-help>div{grid-template-columns:1fr}}
+@media(max-width:800px){
+  .shell{grid-template:56px minmax(0,1fr) / 54px minmax(0,1fr)}
+  .titlebar{grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding:0 10px}
+  .titlebar::after{left:54px}
+  .brand__word,.titlebar__actions small{display:none}
+  .top-context{grid-template-columns:minmax(0,1fr);width:100%}
+  .branch-picker{display:none}
+  .rail{width:54px;padding:9px 5px}
+  .rail:hover,.rail:has(.rail__item:focus-visible){width:190px}
+  .rail__item{width:42px;grid-template-columns:42px minmax(0,1fr) 20px}
+  .rail:hover .rail__item,.rail:has(.rail__item:focus-visible) .rail__item{width:178px}
+  .workspace{grid-template-rows:56px minmax(0,1fr);gap:6px;padding:6px}
+  .workspace__header{padding:8px 12px}
+  .workspace__header h1{font-size:16px}
+  .workspace__header h1::after{display:none}
+  .header-actions{gap:5px}
+  .header-actions select{min-width:88px;max-width:130px}
+  .code-layout{grid-template-columns:minmax(180px,32vw) minmax(0,1fr)}
+  .code-layout--chat{grid-template-columns:minmax(180px,28vw) minmax(0,1fr) minmax(260px,36vw)}
+  .document.markdown{padding:28px 30px 70px}
+}
+@media(max-height:650px){
+  .shell{grid-template-rows:52px minmax(0,1fr)}
+  .workspace{grid-template-rows:50px minmax(0,1fr)}
+  .workspace__header{padding-block:5px}
+  .rail{padding-top:6px;padding-bottom:6px}
+  .rail__item{height:38px;flex-basis:38px}
+}
 @media(prefers-reduced-motion:reduce){.command-backdrop,.command-palette,.shortcut-help,.rail::after{animation:none}.rail,.rail__item,.rail__label{transition:none!important}.rail__item--active,.tree__entry:focus-visible{transform:none}}
 
 /* The launch sequence stages the harvest: acquire, tension, cut, split, reveal. */

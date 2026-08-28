@@ -112,6 +112,7 @@ export namespace main {
 	    tools: Tool[];
 	    platform: string;
 	    version: string;
+	    error: string;
 
 	    static createFrom(source: any = {}) {
 	        return new Bootstrap(source);
@@ -124,6 +125,7 @@ export namespace main {
 	        this.tools = this.convertValues(source["tools"], Tool);
 	        this.platform = source["platform"];
 	        this.version = source["version"];
+	        this.error = source["error"];
 	    }
 
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

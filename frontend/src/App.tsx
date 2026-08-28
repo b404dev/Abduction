@@ -69,6 +69,7 @@ export default function App() {
   useEffect(() => {
     api.bootstrap().then((initialState) => {
       setBootstrap(initialState);
+      if (initialState.error) recordError(initialState.error);
       const initialRepository = initialState.repos[0] ?? null;
       setSelectedRepo(initialRepository);
       if (initialRepository) {
@@ -80,6 +81,11 @@ export default function App() {
         ]).catch((reason: unknown) => recordError(String(reason)));
         window.setTimeout(() => { void api.repositoryStats(initialRepository.path).catch(() => undefined); }, 800);
       }
+      void api.refreshRepos().then((repositories) => {
+        if (!repositories.length) return;
+        setBootstrap((currentState) => currentState ? { ...currentState, repos: repositories } : currentState);
+        setSelectedRepo((currentRepository) => repositories.find((repository) => repository.path === currentRepository?.path) ?? repositories[0]);
+      }).catch((reason: unknown) => recordError(String(reason)));
     }).catch((reason: unknown) => recordError(String(reason)));
   }, [recordError]);
 
@@ -145,7 +151,7 @@ export default function App() {
       </main>
       {commandOpen ? <CommandPalette commands={commands} onClose={() => setCommandOpen(false)}/> : null}
       {shortcutsOpen ? <ShortcutHelp onClose={() => setShortcutsOpen(false)}/> : null}
-      {guideOpen || (!emptySetupDismissed && bootstrap.repos.length === 0) ? <FirstRunGuide setupRequired={bootstrap.repos.length === 0} workspace={bootstrap.config.workspace} onBrowse={() => api.selectWorkspace()} onConnect={async (workspace) => { const nextBootstrap = await api.updateConfig({ ...bootstrap.config, workspace }); setBootstrap(nextBootstrap); setSelectedRepo(nextBootstrap.repos[0] ?? null); return nextBootstrap.repos.length; }} onClose={() => { localStorage.setItem("abduction-guide-seen", "1"); setGuideOpen(false); setEmptySetupDismissed(true); }}/> : null}
+      {guideOpen || (!emptySetupDismissed && bootstrap.repos.length === 0) ? <FirstRunGuide setupRequired={bootstrap.repos.length === 0} workspace={bootstrap.config.workspace} onBrowse={() => api.selectWorkspace()} onConnect={async (workspace) => { const nextBootstrap = await api.updateConfig({ ...bootstrap.config, workspace }); if (nextBootstrap.error) throw new Error(nextBootstrap.error); setBootstrap(nextBootstrap); setSelectedRepo(nextBootstrap.repos[0] ?? null); return nextBootstrap.repos.length; }} onClose={() => { localStorage.setItem("abduction-guide-seen", "1"); setGuideOpen(false); setEmptySetupDismissed(true); }}/> : null}
     </div>
   );
 }

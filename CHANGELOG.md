@@ -8,6 +8,9 @@ All notable changes to Abduction are documented here. This project follows
 ### Fixed
 
 - Made `ABDUCTION_BRANCH` explicitly bypass older prebuilt releases and build the requested source branch.
+- Made large workspaces appear immediately before repository metadata enrichment finishes.
+- Surfaced macOS workspace permission/read errors in the connection wizard.
+- Explicitly enabled native macOS zoom and full-screen support.
 
 ## [0.1.2] - 2026-08-28
 

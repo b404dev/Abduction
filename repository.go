@@ -27,11 +27,11 @@ func NewRepositoryService(configuration Config) *RepositoryService {
 	return &RepositoryService{config: configuration}
 }
 
-// List discovers immediate Git checkouts in the configured workspace.
-func (service *RepositoryService) List() []Repo {
+// ListFast discovers immediate Git checkouts without running repository analysis.
+func (service *RepositoryService) ListFast() ([]Repo, error) {
 	directoryEntries, readError := os.ReadDir(service.config.Workspace)
 	if readError != nil {
-		return []Repo{}
+		return []Repo{}, fmt.Errorf("cannot read workspace %q: %w", service.config.Workspace, readError)
 	}
 	repositories := make([]Repo, 0)
 	for _, directoryEntry := range directoryEntries {
@@ -42,9 +42,26 @@ func (service *RepositoryService) List() []Repo {
 		if !IsGitRepository(repositoryPath) {
 			continue
 		}
+		repositories = append(repositories, Repo{Name: directoryEntry.Name(), Owner: "local", FullName: "local/" + directoryEntry.Name(), Path: repositoryPath})
+	}
+	sort.Slice(repositories, func(leftIndex int, rightIndex int) bool {
+		return strings.ToLower(repositories[leftIndex].Name) < strings.ToLower(repositories[rightIndex].Name)
+	})
+	return repositories, nil
+}
+
+// List discovers immediate Git checkouts in the configured workspace.
+func (service *RepositoryService) List() []Repo {
+	fastRepositories, readError := service.ListFast()
+	if readError != nil {
+		return []Repo{}
+	}
+	repositories := make([]Repo, 0, len(fastRepositories))
+	for _, fastRepository := range fastRepositories {
+		repositoryPath := fastRepository.Path
 		owner, name, githubURL := RemoteIdentity(repositoryPath)
 		if name == "" {
-			name = directoryEntry.Name()
+			name = fastRepository.Name
 		}
 		if owner == "" {
 			owner = "local"

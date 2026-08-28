@@ -28,6 +28,41 @@ func TestDefaultWorkspacePrefersExistingConventions(testingContext *testing.T) {
 	}
 }
 
+// TestFastRepositoryDiscoveryFindsDirectoriesAndWorktrees protects first boot.
+func TestFastRepositoryDiscoveryFindsDirectoriesAndWorktrees(testingContext *testing.T) {
+	workspacePath := testingContext.TempDir()
+	for _, repositoryName := range []string{"standard", "worktree"} {
+		repositoryPath := filepath.Join(workspacePath, repositoryName)
+		if makeError := os.Mkdir(repositoryPath, 0o755); makeError != nil {
+			testingContext.Fatal(makeError)
+		}
+		gitPath := filepath.Join(repositoryPath, ".git")
+		if repositoryName == "standard" {
+			if makeError := os.Mkdir(gitPath, 0o755); makeError != nil {
+				testingContext.Fatal(makeError)
+			}
+		} else if writeError := os.WriteFile(gitPath, []byte("gitdir: /tmp/example\n"), 0o644); writeError != nil {
+			testingContext.Fatal(writeError)
+		}
+	}
+	service := NewRepositoryService(Config{Workspace: workspacePath})
+	repositories, discoveryError := service.ListFast()
+	if discoveryError != nil {
+		testingContext.Fatal(discoveryError)
+	}
+	if len(repositories) != 2 || repositories[0].Name != "standard" || repositories[1].Name != "worktree" {
+		testingContext.Fatalf("unexpected fast discovery result: %#v", repositories)
+	}
+}
+
+// TestFastRepositoryDiscoveryReportsUnreadableWorkspace keeps setup actionable.
+func TestFastRepositoryDiscoveryReportsUnreadableWorkspace(testingContext *testing.T) {
+	service := NewRepositoryService(Config{Workspace: filepath.Join(testingContext.TempDir(), "missing")})
+	if _, discoveryError := service.ListFast(); discoveryError == nil {
+		testingContext.Fatal("expected missing workspace error")
+	}
+}
+
 // TestListDirectorySortsDirectoriesFirst keeps the file browser predictable.
 func TestListDirectorySortsDirectoriesFirst(testingContext *testing.T) {
 	repositoryPath := testingContext.TempDir()
