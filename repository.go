@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 var ErrNoGitHubRemote = errors.New("repository has no GitHub remote")
@@ -105,8 +108,13 @@ func loadGitHubPages[T any](endpoint string) ([]T, error) {
 	if lookupError != nil {
 		return nil, errors.New("GitHub CLI was not found (checked PATH, /opt/homebrew/bin, and /usr/local/bin)")
 	}
-	outputBytes, commandError := exec.Command(githubPath, "api", "--paginate", "--jq", ".[]", endpoint).CombinedOutput()
+	requestContext, cancelRequest := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancelRequest()
+	outputBytes, commandError := exec.CommandContext(requestContext, githubPath, "api", "--paginate", "--jq", ".[]", endpoint).CombinedOutput()
 	if commandError != nil {
+		if errors.Is(requestContext.Err(), context.DeadlineExceeded) {
+			return nil, errors.New("GitHub request timed out after 15 seconds")
+		}
 		message := strings.TrimSpace(string(outputBytes))
 		if message == "" {
 			message = commandError.Error()
@@ -135,7 +143,10 @@ func decodeGitHubStream[T any](outputBytes []byte) ([]T, error) {
 
 // Sources groups local checkouts with the authenticated user's GitHub sources.
 func (service *RepositoryService) Sources() RepositorySources {
-	localRepositories := service.List()
+	localRepositories, localError := service.ListFast()
+	if localError != nil {
+		localRepositories = []Repo{}
+	}
 	result := RepositorySources{Yours: localRepositories, Organisations: []Repo{}, Starred: []Repo{}}
 	githubPath, lookupError := ExecutablePath("gh")
 	if lookupError != nil {
@@ -173,13 +184,28 @@ func (service *RepositoryService) Sources() RepositorySources {
 		}
 	}
 	if organisationsError == nil {
+		type organisationResult struct {
+			repositories []githubRepository
+			err          error
+		}
+		organisationResults := make(chan organisationResult, len(organisations))
+		var organisationGroup sync.WaitGroup
 		for _, organisation := range organisations {
-			organisationRepositories, organisationError := loadGitHubPages[githubRepository]("orgs/" + organisation.Login + "/repos?per_page=100&sort=pushed&type=all")
-			if organisationError != nil {
-				result.Error = "Some organisation repositories could not be loaded."
+			organisationGroup.Add(1)
+			go func(login string) {
+				defer organisationGroup.Done()
+				repositories, repositoryError := loadGitHubPages[githubRepository]("orgs/" + login + "/repos?per_page=100&sort=pushed&type=all")
+				organisationResults <- organisationResult{repositories: repositories, err: repositoryError}
+			}(organisation.Login)
+		}
+		organisationGroup.Wait()
+		close(organisationResults)
+		for organisationResult := range organisationResults {
+			if organisationResult.err != nil {
+				result.Error = "Some organisation repositories could not be loaded: " + organisationResult.err.Error()
 				continue
 			}
-			addOrganisationRepositories(organisationRepositories)
+			addOrganisationRepositories(organisationResult.repositories)
 		}
 	}
 	// This endpoint remains useful when organisation membership visibility or
