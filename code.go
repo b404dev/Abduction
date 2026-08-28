@@ -76,6 +76,21 @@ func (service *CodeService) ReadFile(repositoryPath string, relativePath string,
 	return RenderCode(relativePath, source, themeName, fileInfo.Size())
 }
 
+// RenderSource renders bytes obtained from a trusted remote repository API.
+func (service *CodeService) RenderSource(relativePath string, sourceBytes []byte, themeName string) (Document, error) {
+	fileSize := int64(len(sourceBytes))
+	if fileSize > maximumReadableFileSize || !utf8.Valid(sourceBytes) || bytes.IndexByte(sourceBytes, 0) >= 0 {
+		return Document{Path: relativePath, Name: filepath.Base(relativePath), Size: fileSize, Binary: true}, nil
+	}
+	source := string(sourceBytes)
+	if IsMarkdown(relativePath) {
+		document := service.renderMarkdown(filepath.Base(relativePath), relativePath, source)
+		document.Size = fileSize
+		return document, nil
+	}
+	return RenderCode(relativePath, source, themeName, fileSize)
+}
+
 // renderMarkdown converts trusted source text into sanitised document HTML.
 func (service *CodeService) renderMarkdown(name string, relativePath string, source string) Document {
 	var rendered bytes.Buffer

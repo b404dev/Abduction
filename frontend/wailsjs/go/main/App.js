@@ -38,6 +38,10 @@ export function ListDirectory(arg1, arg2) {
   return window['go']['main']['App']['ListDirectory'](arg1, arg2);
 }
 
+export function ListRemoteDirectory(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ListRemoteDirectory'](arg1, arg2, arg3);
+}
+
 export function OpenInEditor(arg1, arg2) {
   return window['go']['main']['App']['OpenInEditor'](arg1, arg2);
 }
@@ -64,6 +68,14 @@ export function ReadFile(arg1, arg2, arg3) {
 
 export function ReadOverview(arg1, arg2) {
   return window['go']['main']['App']['ReadOverview'](arg1, arg2);
+}
+
+export function ReadRemoteFile(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ReadRemoteFile'](arg1, arg2, arg3, arg4);
+}
+
+export function ReadRemoteOverview(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ReadRemoteOverview'](arg1, arg2, arg3);
 }
 
 export function RefreshRepos() {

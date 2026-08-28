@@ -15,6 +15,9 @@ interface AbductionBackend {
   SearchRepositoryFilesPattern(repositoryPath: string, query: string, useRegex: boolean): Promise<SearchResult[]>;
   ReadOverview(repositoryPath: string, themeName: ThemeName): Promise<Document>;
   ReadFile(repositoryPath: string, relativePath: string, themeName: ThemeName): Promise<Document>;
+  ListRemoteDirectory(fullName: string, relativePath: string, branch: string): Promise<TreeEntry[]>;
+  ReadRemoteFile(fullName: string, relativePath: string, branch: string, themeName: ThemeName): Promise<Document>;
+  ReadRemoteOverview(fullName: string, branch: string, themeName: ThemeName): Promise<Document>;
   Commits(repositoryPath: string): Promise<Commit[]>;
   RepositoryStats(repositoryPath: string): Promise<RepositoryStats>;
   PullRequests(repositoryPath: string): Promise<PullRequest[]>;
@@ -91,6 +94,9 @@ export const api = {
   searchRepositoryFilesPattern: (repositoryPath: string, query: string, useRegex: boolean): Promise<SearchResult[]> => backend().SearchRepositoryFilesPattern(repositoryPath, query, useRegex),
   readOverview: (repositoryPath: string, themeName: ThemeName): Promise<Document> => cached(cacheKey("overview", repositoryPath, themeName), () => backend().ReadOverview(repositoryPath, themeName), 10_000),
   readFile: (repositoryPath: string, relativePath: string, themeName: ThemeName): Promise<Document> => cached(cacheKey("document", repositoryPath, relativePath, themeName), () => backend().ReadFile(repositoryPath, relativePath, themeName), 10_000),
+  listRemoteDirectory: (fullName: string, relativePath: string, branch: string): Promise<TreeEntry[]> => cached(cacheKey("remote-directory", fullName, relativePath, branch), () => backend().ListRemoteDirectory(fullName, relativePath, branch), 30_000),
+  readRemoteFile: (fullName: string, relativePath: string, branch: string, themeName: ThemeName): Promise<Document> => cached(cacheKey("remote-document", fullName, relativePath, branch, themeName), () => backend().ReadRemoteFile(fullName, relativePath, branch, themeName), 30_000),
+  readRemoteOverview: (fullName: string, branch: string, themeName: ThemeName): Promise<Document> => cached(cacheKey("remote-overview", fullName, branch, themeName), () => backend().ReadRemoteOverview(fullName, branch, themeName), 30_000),
   commits: (repositoryPath: string): Promise<Commit[]> => cached(cacheKey("commits", repositoryPath), () => backend().Commits(repositoryPath), 15_000),
   repositoryStats: (repositoryPath: string): Promise<RepositoryStats> => cached(cacheKey("stats", repositoryPath), () => backend().RepositoryStats(repositoryPath), 60_000),
   pullRequests: (repositoryPath: string): Promise<PullRequest[]> => cached(cacheKey("pull-requests", repositoryPath), () => backend().PullRequests(repositoryPath), 60_000),

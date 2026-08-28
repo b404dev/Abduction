@@ -18,6 +18,8 @@ All notable changes to Abduction are documented here. This project follows
 - Prevented remote-source spinners by skipping local metadata enrichment, loading organisations concurrently, and timing out stalled GitHub requests.
 - Added fzf-style ordered fuzzy matching and relevance ranking to repository switching and tracked-file search.
 - Kept macOS fullscreen titlebar controls outside draggable hit regions so the repository selector remains clickable.
+- Opened cloud repositories in a read-only GitHub-backed file browser without cloning, with cloning retained as a separate explicit action.
+- Fixed analysis event races and extracted readable assistant prose from current Codex and Claude JSONL event shapes.
 
 ## [0.1.2] - 2026-08-28
 

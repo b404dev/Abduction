@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -99,6 +101,92 @@ type githubRepository struct {
 
 type githubOrganisation struct {
 	Login string `json:"login"`
+}
+
+type githubContent struct {
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	Type     string `json:"type"`
+	Size     int64  `json:"size"`
+	Content  string `json:"content"`
+	Encoding string `json:"encoding"`
+}
+
+func loadGitHubObject[T any](endpoint string) (T, error) {
+	var result T
+	githubPath, lookupError := ExecutablePath("gh")
+	if lookupError != nil {
+		return result, lookupError
+	}
+	requestContext, cancelRequest := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancelRequest()
+	outputBytes, commandError := exec.CommandContext(requestContext, githubPath, "api", endpoint).CombinedOutput()
+	if commandError != nil {
+		return result, fmt.Errorf("GitHub request failed: %s", strings.TrimSpace(string(outputBytes)))
+	}
+	return result, json.Unmarshal(outputBytes, &result)
+}
+
+func remoteContentsEndpoint(fullName string, relativePath string, branch string) (string, error) {
+	if !regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`).MatchString(fullName) {
+		return "", errors.New("invalid GitHub repository name")
+	}
+	cleanPath := strings.Trim(strings.ReplaceAll(filepath.ToSlash(relativePath), "../", ""), "/")
+	endpoint := "repos/" + fullName + "/contents"
+	if cleanPath != "" {
+		segments := strings.Split(cleanPath, "/")
+		for index := range segments {
+			segments[index] = url.PathEscape(segments[index])
+		}
+		endpoint += "/" + strings.Join(segments, "/")
+	}
+	if branch != "" {
+		endpoint += "?ref=" + url.QueryEscape(branch)
+	}
+	return endpoint, nil
+}
+
+// RemoteDirectory lists one GitHub directory without creating a checkout.
+func (service *RepositoryService) RemoteDirectory(fullName string, relativePath string, branch string) ([]TreeEntry, error) {
+	endpoint, endpointError := remoteContentsEndpoint(fullName, relativePath, branch)
+	if endpointError != nil {
+		return nil, endpointError
+	}
+	contents, contentError := loadGitHubObject[[]githubContent](endpoint)
+	if contentError != nil {
+		return nil, contentError
+	}
+	entries := make([]TreeEntry, 0, len(contents))
+	for _, content := range contents {
+		kind := "file"
+		if content.Type == "dir" {
+			kind = "directory"
+		}
+		entries = append(entries, TreeEntry{Name: content.Name, Path: content.Path, Kind: kind, Size: content.Size})
+	}
+	sort.Slice(entries, func(leftIndex int, rightIndex int) bool {
+		if entries[leftIndex].Kind != entries[rightIndex].Kind {
+			return entries[leftIndex].Kind == "directory"
+		}
+		return strings.ToLower(entries[leftIndex].Name) < strings.ToLower(entries[rightIndex].Name)
+	})
+	return entries, nil
+}
+
+// RemoteFile downloads one GitHub file through the authenticated API.
+func (service *RepositoryService) RemoteFile(fullName string, relativePath string, branch string) ([]byte, error) {
+	endpoint, endpointError := remoteContentsEndpoint(fullName, relativePath, branch)
+	if endpointError != nil {
+		return nil, endpointError
+	}
+	content, contentError := loadGitHubObject[githubContent](endpoint)
+	if contentError != nil {
+		return nil, contentError
+	}
+	if content.Encoding != "base64" {
+		return nil, errors.New("GitHub returned an unsupported file encoding")
+	}
+	return base64.StdEncoding.DecodeString(strings.ReplaceAll(content.Content, "\n", ""))
 }
 
 // loadGitHubPages asks gh to follow every REST page and emits a compatible

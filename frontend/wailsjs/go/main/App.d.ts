@@ -20,6 +20,8 @@ export function Linters(arg1:string):Promise<Array<main.LinterInfo>>;
 
 export function ListDirectory(arg1:string,arg2:string):Promise<Array<main.TreeEntry>>;
 
+export function ListRemoteDirectory(arg1:string,arg2:string,arg3:string):Promise<Array<main.TreeEntry>>;
+
 export function OpenInEditor(arg1:string,arg2:string):Promise<void>;
 
 export function OpenRepositoryOnGitHub(arg1:main.Repo):Promise<void>;
@@ -33,6 +35,10 @@ export function PullRequests(arg1:string):Promise<Array<main.PullRequest>>;
 export function ReadFile(arg1:string,arg2:string,arg3:string):Promise<main.Document>;
 
 export function ReadOverview(arg1:string,arg2:string):Promise<main.Document>;
+
+export function ReadRemoteFile(arg1:string,arg2:string,arg3:string,arg4:string):Promise<main.Document>;
+
+export function ReadRemoteOverview(arg1:string,arg2:string,arg3:string):Promise<main.Document>;
 
 export function RefreshRepos():Promise<Array<main.Repo>>;
 

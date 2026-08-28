@@ -230,6 +230,27 @@ func (app *App) ReadFile(repositoryPath string, relativePath string, themeName s
 	return app.documents.Get(key, 10*time.Second, func() (Document, error) { return app.code.ReadFile(repositoryPath, relativePath, themeName) })
 }
 
+func (app *App) ListRemoteDirectory(fullName string, relativePath string, branch string) ([]TreeEntry, error) {
+	return app.repository.RemoteDirectory(fullName, relativePath, branch)
+}
+
+func (app *App) ReadRemoteFile(fullName string, relativePath string, branch string, themeName string) (Document, error) {
+	sourceBytes, readError := app.repository.RemoteFile(fullName, relativePath, branch)
+	if readError != nil {
+		return Document{}, readError
+	}
+	return app.code.RenderSource(relativePath, sourceBytes, themeName)
+}
+
+func (app *App) ReadRemoteOverview(fullName string, branch string, themeName string) (Document, error) {
+	for _, readmeName := range []string{"README.md", "readme.md", "README.markdown", "README"} {
+		if document, readError := app.ReadRemoteFile(fullName, readmeName, branch, themeName); readError == nil {
+			return document, nil
+		}
+	}
+	return app.code.RenderSource("README.md", []byte("# No README found\n\nChoose a file from the remote tree."), themeName)
+}
+
 // Commits returns the repository's recent commit history.
 func (app *App) Commits(repositoryPath string) ([]Commit, error) {
 	return app.commits.Get(repositoryPath, 15*time.Second, func() ([]Commit, error) { return app.repository.Commits(repositoryPath, 100) })

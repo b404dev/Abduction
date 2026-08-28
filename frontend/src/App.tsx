@@ -69,14 +69,14 @@ export default function App() {
   }, []);
 
   const refreshActiveRepository = useCallback(async () => {
-    if (!selectedRepo) return;
+    if (!selectedRepo?.path) return;
     await api.refreshRepository(selectedRepo.path);
     setRepositoryEpoch((currentEpoch) => currentEpoch + 1);
   }, [selectedRepo]);
 
   useEffect(() => {
     repositoryFingerprint.current = "";
-    if (!selectedRepo) return;
+    if (!selectedRepo?.path) return;
     let stopped = false;
     const checkForChanges = async () => {
       try {
@@ -164,9 +164,9 @@ export default function App() {
       <Titlebar version={bootstrap.version} platform={bootstrap.platform} repos={bootstrap.repos} selectedRepo={selectedRepo} onSelect={setSelectedRepo} onCloned={(repository) => { setSelectedRepo(repository); api.refreshRepos().then((repositories) => setBootstrap({ ...bootstrap, repos: repositories })).catch((reason: unknown) => recordError(String(reason))); }} onCommand={() => setCommandOpen(true)} onShortcuts={() => setShortcutsOpen(true)} onError={recordError} />
       <Rail view={view} onView={setView} errorCount={logs.length} />
       <main className="workspace">
-        <WorkspaceHeader repo={selectedRepo} onRefresh={refreshActiveRepository} onError={recordError} />
-        {view === "themes" ? <ThemeSwitcher theme={theme} onTheme={updateTheme} /> : view === "logs" ? <LogsView logs={logs} onClear={() => setLogs([])} /> : view === "settings" ? <SettingsView bootstrap={bootstrap} onSaved={(nextBootstrap) => { setBootstrap(nextBootstrap); setTheme(nextBootstrap.config.theme); setSelectedRepo(nextBootstrap.repos.find((repository) => repository.path === selectedRepo?.path) ?? nextBootstrap.repos[0] ?? null); }} onError={recordError} /> : !selectedRepo ? <EmptyWorkspace workspace={bootstrap.config.workspace} onSetup={() => { setEmptySetupDismissed(false); setGuideOpen(true); }} onSettings={() => setView("settings")} /> : view === "code" ?
-          <CodeView key={`${selectedRepo.path}-${theme}-${repositoryEpoch}`} repo={selectedRepo} theme={theme} onError={recordError} /> : view === "history" ?
+        <WorkspaceHeader repo={selectedRepo} onClone={async (repository) => { const clonedRepository = await api.cloneRepository(repository.githubUrl + ".git"); setSelectedRepo(clonedRepository); const repositories = await api.refreshRepos(); setBootstrap({ ...bootstrap, repos: repositories }); }} onRefresh={refreshActiveRepository} onError={recordError} />
+        {view === "themes" ? <ThemeSwitcher theme={theme} onTheme={updateTheme} /> : view === "logs" ? <LogsView logs={logs} onClear={() => setLogs([])} /> : view === "settings" ? <SettingsView bootstrap={bootstrap} onSaved={(nextBootstrap) => { setBootstrap(nextBootstrap); setTheme(nextBootstrap.config.theme); setSelectedRepo(nextBootstrap.repos.find((repository) => repository.path === selectedRepo?.path) ?? nextBootstrap.repos[0] ?? null); }} onError={recordError} /> : !selectedRepo ? <EmptyWorkspace workspace={bootstrap.config.workspace} onSetup={() => { setEmptySetupDismissed(false); setGuideOpen(true); }} onSettings={() => setView("settings")} /> : !selectedRepo.path && view !== "code" ? <RemoteRepositoryNotice repo={selectedRepo} /> : view === "code" ?
+          <CodeView key={`${selectedRepo.path || selectedRepo.fullName}-${theme}-${repositoryEpoch}`} repo={selectedRepo} theme={theme} onError={recordError} /> : view === "history" ?
           <HistoryView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> : view === "stats" ?
           <StatsView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> :
           view === "reviews" ? <ReviewsView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> :
@@ -242,7 +242,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   }, [pickerOpen, repos, onError]);
 
   useEffect(() => {
-    if (!selectedRepo) { setBranches([]); return; }
+    if (!selectedRepo?.path) { setBranches([]); return; }
     api.branches(selectedRepo.path).then(setBranches).catch(() => setBranches([]));
   }, [selectedRepo]);
 
@@ -264,11 +264,6 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
 
   // chooseRepository selects a result and immediately returns focus to reading.
   function chooseRepository(repository: Repo) {
-    if (!repository.path && repository.githubUrl) {
-      setCloning(repository.fullName);
-      api.cloneRepository(repository.githubUrl + ".git").then((clonedRepository) => { onCloned(clonedRepository); setPickerOpen(false); setPickerQuery(""); }).catch((reason: unknown) => onError(String(reason))).finally(() => setCloning(""));
-      return;
-    }
     onSelect(repository); setPickerOpen(false); setPickerQuery("");
   }
 
@@ -292,7 +287,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
     if (event.key === "Enter" && filteredRepos[activeRepoIndex]) { event.preventDefault(); chooseRepository(filteredRepos[activeRepoIndex]); }
   }
 
-  return <><header className="titlebar"><BrandIdentity/><div className="top-context"><button className="repo-picker" onClick={() => setPickerOpen(true)}><span>Repository</span><strong>{selectedRepo?.fullName ?? "Select a repository"}</strong><kbd>⌘P</kbd></button><label className="branch-picker"><GitBranch size={15}/><select disabled={!selectedRepo || switchingBranch} value={selectedRepo?.branch ?? ""} onChange={(event) => chooseBranch(event.target.value)} aria-label="Branch">{selectedRepo?.branch && !branches.includes(selectedRepo.branch) ? <option value={selectedRepo.branch}>{selectedRepo.branch}</option> : null}{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select></label></div><div className="titlebar__actions"><button onClick={onCommand} aria-label="Open command palette"><Command size={15}/><kbd>⌘K</kbd></button><button onClick={onShortcuts} aria-label="Show keyboard shortcuts"><Keyboard size={16}/></button><small>{platform} · v{version}</small></div></header>{pickerOpen ? <div className="picker-backdrop" onMouseDown={() => setPickerOpen(false)}><section className="picker" role="dialog" aria-modal="true" aria-label="Open repository" onMouseDown={(event) => event.stopPropagation()}><header><span className="eyebrow">Quick switch</span><h2>Open repository</h2></header><div className="repo-source-tabs">{(["yours", "organisations", "starred"] as const).map((source) => <button key={source} className={repoSource === source ? "repo-source-tab repo-source-tab--active" : "repo-source-tab"} onClick={() => setRepoSource(source)}><span>{source === "yours" ? "On disk" : source === "organisations" ? "Organisations" : "Starred"}</span><b>{repositorySources[source].length}</b></button>)}</div>{repositorySources.error ? <p className="picker-source-error">{repositorySources.error}</p> : null}<input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} onKeyDown={handlePickerKey} placeholder="Search owner or repository…"/><div className="picker__list" role="listbox">{loadingSources && repoSource !== "yours" ? <UfoLoader label={`loading ${repoSource}…`}/> : filteredRepos.map((repository, repositoryIndex) => <button key={repository.fullName} role="option" aria-selected={repositoryIndex === activeRepoIndex} className={repositoryIndex === activeRepoIndex ? "picker__option--active" : ""} onMouseEnter={() => setActiveRepoIndex(repositoryIndex)} onClick={() => chooseRepository(repository)} disabled={Boolean(cloning)}><span className="repo__glyph">{repository.path ? "⌁" : "☁"}</span><span><strong>{repository.name}</strong><small>{repository.owner} · {repository.language || "Unknown"}{repository.description ? ` · ${repository.description}` : ""}</small></span><span className={repository.path ? "repo-action repo-action--local" : "repo-action"}>{repository.path ? repository.branch || "On disk" : cloning === repository.fullName ? "Cloning…" : "Clone to workspace"}</span></button>)}{!loadingSources && !filteredRepos.length ? <p className="picker-empty">No repositories in this source.</p> : null}</div><div className="clone-box"><div><span className="eyebrow">Add to workspace</span><strong>Clone from URL</strong></div><div><input value={cloneURL} onChange={(event) => setCloneURL(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") cloneRepository(); }} placeholder="https://github.com/owner/repository.git"/><button className="primary" disabled={!cloneURL.trim() || Boolean(cloning)} onClick={cloneRepository}>{cloning === cloneURL.trim() ? "Cloning…" : "Clone"}</button></div></div><footer><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open or clone</span><span><kbd>esc</kbd> close</span></footer></section></div> : null}</>;
+  return <><header className="titlebar"><BrandIdentity/><div className="top-context"><button className="repo-picker" onClick={() => setPickerOpen(true)}><span>Repository</span><strong>{selectedRepo?.fullName ?? "Select a repository"}</strong><kbd>⌘P</kbd></button><label className="branch-picker"><GitBranch size={15}/><select disabled={!selectedRepo?.path || switchingBranch} value={selectedRepo?.branch ?? ""} onChange={(event) => chooseBranch(event.target.value)} aria-label="Branch">{selectedRepo?.branch && !branches.includes(selectedRepo.branch) ? <option value={selectedRepo.branch}>{selectedRepo.branch}</option> : null}{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select></label></div><div className="titlebar__actions"><button onClick={onCommand} aria-label="Open command palette"><Command size={15}/><kbd>⌘K</kbd></button><button onClick={onShortcuts} aria-label="Show keyboard shortcuts"><Keyboard size={16}/></button><small>{platform} · v{version}</small></div></header>{pickerOpen ? <div className="picker-backdrop" onMouseDown={() => setPickerOpen(false)}><section className="picker" role="dialog" aria-modal="true" aria-label="Open repository" onMouseDown={(event) => event.stopPropagation()}><header><span className="eyebrow">Quick switch</span><h2>Open repository</h2></header><div className="repo-source-tabs">{(["yours", "organisations", "starred"] as const).map((source) => <button key={source} className={repoSource === source ? "repo-source-tab repo-source-tab--active" : "repo-source-tab"} onClick={() => setRepoSource(source)}><span>{source === "yours" ? "On disk" : source === "organisations" ? "Organisations" : "Starred"}</span><b>{repositorySources[source].length}</b></button>)}</div>{repositorySources.error ? <p className="picker-source-error">{repositorySources.error}</p> : null}<input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} onKeyDown={handlePickerKey} placeholder="Search owner or repository…"/><div className="picker__list" role="listbox">{loadingSources && repoSource !== "yours" ? <UfoLoader label={`loading ${repoSource}…`}/> : filteredRepos.map((repository, repositoryIndex) => <button key={repository.fullName} role="option" aria-selected={repositoryIndex === activeRepoIndex} className={repositoryIndex === activeRepoIndex ? "picker__option--active" : ""} onMouseEnter={() => setActiveRepoIndex(repositoryIndex)} onClick={() => chooseRepository(repository)} disabled={Boolean(cloning)}><span className="repo__glyph">{repository.path ? "⌁" : "☁"}</span><span><strong>{repository.name}</strong><small>{repository.owner} · {repository.language || "Unknown"}{repository.description ? ` · ${repository.description}` : ""}</small></span><span className={repository.path ? "repo-action repo-action--local" : "repo-action"}>{repository.path ? repository.branch || "On disk" : "View remote"}</span></button>)}{!loadingSources && !filteredRepos.length ? <p className="picker-empty">No repositories in this source.</p> : null}</div><div className="clone-box"><div><span className="eyebrow">Add to workspace</span><strong>Clone from URL</strong></div><div><input value={cloneURL} onChange={(event) => setCloneURL(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") cloneRepository(); }} placeholder="https://github.com/owner/repository.git"/><button className="primary" disabled={!cloneURL.trim() || Boolean(cloning)} onClick={cloneRepository}>{cloning === cloneURL.trim() ? "Cloning…" : "Clone"}</button></div></div><footer><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></footer></section></div> : null}</>;
 }
 
 // BrandIdentity renders Abduction's compact craft and wordmark.
@@ -328,8 +323,9 @@ function Rail({ view, onView, errorCount }: { view: ViewName; onView: (view: Vie
 }
 
 // WorkspaceHeader shows repository context and global appearance controls.
-function WorkspaceHeader({ repo, onRefresh, onError }: { repo: Repo | null; onRefresh: () => Promise<void>; onError: (message: string) => void }) {
+function WorkspaceHeader({ repo, onClone, onRefresh, onError }: { repo: Repo | null; onClone: (repository: Repo) => Promise<void>; onRefresh: () => Promise<void>; onError: (message: string) => void }) {
   const [pulling, setPulling] = useState(false);
+  const [cloningRemote, setCloningRemote] = useState(false);
   const [pullStatus, setPullStatus] = useState("");
   function pullLatest() {
     if (!repo || pulling) return;
@@ -337,7 +333,11 @@ function WorkspaceHeader({ repo, onRefresh, onError }: { repo: Repo | null; onRe
     api.pullLatest(repo.path).then(async (output) => { setPullStatus(output.includes("Already up to date") ? "Up to date" : "Updated"); await onRefresh(); }).catch((reason: unknown) => onError(String(reason))).finally(() => setPulling(false));
   }
   useEffect(() => { setPullStatus(""); }, [repo?.path]);
-  return <header className="workspace__header"><div>{repo ? <><span className="eyebrow">{repo.language}</span><h1>{repo.name}</h1></> : <h1>Choose a repository</h1>}</div><div className="header-actions">{pullStatus ? <span className="pull-status">{pullStatus}</span> : null}{repo ? <button className="ghost refresh-action" onClick={() => void onRefresh()}>Refresh</button> : null}{repo ? <button className="primary pull-action" disabled={pulling} onClick={pullLatest}>{pulling ? "Pulling…" : "Pull latest"}</button> : null}{repo ? <button className="ghost editor-action" onClick={() => api.openInEditor(repo.path, "")}>Open editor</button> : null}{repo?.githubUrl ? <button className="ghost github-action" onClick={() => api.openOnGitHub(repo)}>GitHub ↗</button> : null}</div></header>;
+  return <header className="workspace__header"><div>{repo ? <><span className="eyebrow">{repo.path ? repo.language : `Remote · ${repo.owner}`}</span><h1>{repo.name}</h1></> : <h1>Choose a repository</h1>}</div><div className="header-actions">{pullStatus ? <span className="pull-status">{pullStatus}</span> : null}{repo?.path ? <button className="ghost refresh-action" onClick={() => void onRefresh()}>Refresh</button> : null}{repo?.path ? <button className="primary pull-action" disabled={pulling} onClick={pullLatest}>{pulling ? "Pulling…" : "Pull latest"}</button> : null}{repo?.path ? <button className="ghost editor-action" onClick={() => api.openInEditor(repo.path, "")}>Open editor</button> : null}{repo && !repo.path ? <button className="primary" disabled={cloningRemote} onClick={() => { setCloningRemote(true); onClone(repo).catch((reason: unknown) => onError(String(reason))).finally(() => setCloningRemote(false)); }}>{cloningRemote ? "Cloning…" : "Clone to workspace"}</button> : null}{repo?.githubUrl ? <button className="ghost github-action" onClick={() => api.openOnGitHub(repo)}>GitHub ↗</button> : null}</div></header>;
+}
+
+function RemoteRepositoryNotice({ repo }: { repo: Repo }) {
+  return <section className="empty panel"><div className="repo__glyph">☁</div><h2>Remote repository</h2><p>{repo.fullName} is open in read-only mode. Browse its files under Code, or clone it to unlock local history, analysis, security, and tooling.</p></section>;
 }
 
 // CodeView combines a lazy file browser with the rich document reader.
@@ -362,7 +362,9 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    Promise.all([api.listDirectory(repo.path, ""), api.readOverview(repo.path, theme)]).then(([rootEntries, overview]) => { setEntries(rootEntries); setDocument(overview); }).catch((reason: unknown) => onError(String(reason))).finally(() => setLoading(false));
+    const directoryRequest = repo.path ? api.listDirectory(repo.path, "") : api.listRemoteDirectory(repo.fullName, "", repo.branch);
+    const overviewRequest = repo.path ? api.readOverview(repo.path, theme) : api.readRemoteOverview(repo.fullName, repo.branch, theme);
+    Promise.all([directoryRequest, overviewRequest]).then(([rootEntries, overview]) => { setEntries(rootEntries); setDocument(overview); }).catch((reason: unknown) => onError(String(reason))).finally(() => setLoading(false));
   }, [repo.path, theme, onError]);
 
   useEffect(() => {
@@ -375,6 +377,7 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
     }
     let cancelled = false;
     setSearchError("");
+    if (!repo.path) { setSearchResults([]); setSearchError("Remote search is coming from GitHub; clone this repository for full content search."); return; }
     const searchRequest = searchMode === "files" ? api.searchRepositoryFilesPattern : api.searchRepositoryPattern;
     const searchTimer = window.setTimeout(() => searchRequest(repo.path, trimmedQuery, searchRegex).then((results) => { if (!cancelled) setSearchResults(results); }).catch((reason: unknown) => { if (!cancelled) { setSearchResults([]); setSearchError(String(reason)); } }), 180);
     return () => { cancelled = true; window.clearTimeout(searchTimer); };
@@ -404,11 +407,11 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
       if (nextExpandedPaths.has(entry.path)) nextExpandedPaths.delete(entry.path);
       else nextExpandedPaths.add(entry.path);
       setExpandedPaths(nextExpandedPaths);
-      if (!childrenByPath[entry.path]) api.listDirectory(repo.path, entry.path).then((children) => setChildrenByPath((currentChildren) => ({ ...currentChildren, [entry.path]: children }))).catch((reason: unknown) => onError(String(reason)));
+      if (!childrenByPath[entry.path]) (repo.path ? api.listDirectory(repo.path, entry.path) : api.listRemoteDirectory(repo.fullName, entry.path, repo.branch)).then((children) => setChildrenByPath((currentChildren) => ({ ...currentChildren, [entry.path]: children }))).catch((reason: unknown) => onError(String(reason)));
       return;
     }
     setLoading(true);
-    api.readFile(repo.path, entry.path, theme).then((nextDocument) => { setDocument(nextDocument); setLoading(false); }).catch((reason: unknown) => { setLoading(false); onError(String(reason)); });
+    (repo.path ? api.readFile(repo.path, entry.path, theme) : api.readRemoteFile(repo.fullName, entry.path, repo.branch, theme)).then((nextDocument) => { setDocument(nextDocument); setLoading(false); }).catch((reason: unknown) => { setLoading(false); onError(String(reason)); });
   }
 
   // openSearchResult renders a matched file while retaining the search results.
@@ -628,12 +631,23 @@ function readableProviderLine(line: string, provider: string): string {
   try {
     const parsedLine = JSON.parse(line) as Record<string, unknown>;
     const item = parsedLine.item as Record<string, unknown> | undefined;
-    if (provider === "codex") return parsedLine.type === "item.completed" && item?.type === "agent_message" && typeof item.text === "string" ? item.text : "";
+    if (provider === "codex") {
+      if (["item.completed", "item.updated"].includes(String(parsedLine.type)) && item?.type === "agent_message") return extractProviderText(item.text ?? item.content);
+      if (parsedLine.type === "response.output_text.delta") return typeof parsedLine.delta === "string" ? parsedLine.delta : "";
+      if (parsedLine.type === "message") return extractProviderText(parsedLine.content);
+      return "";
+    }
     const message = parsedLine.message as Record<string, unknown> | undefined;
     if (provider === "claude" && parsedLine.type === "assistant") return extractClaudeText(message?.content);
-    if (provider === "claude" && parsedLine.type === "result" && parsedLine.is_error === true) return typeof parsedLine.result === "string" ? parsedLine.result : "Provider error";
+    if (provider === "claude" && parsedLine.type === "result") return typeof parsedLine.result === "string" ? parsedLine.result : parsedLine.is_error === true ? "Provider error" : "";
     return "";
   } catch { return ""; }
+}
+
+function extractProviderText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content.map((block) => block && typeof block === "object" && typeof (block as Record<string, unknown>).text === "string" ? String((block as Record<string, unknown>).text) : "").filter(Boolean).join("\n");
 }
 
 // extractClaudeText joins only visible text blocks from a Claude message.
@@ -714,7 +728,8 @@ function AnalysisView({ repo, tools, onError }: { repo: Repo; tools: Bootstrap["
 
   useEffect(() => {
     const unsubscribe = EventsOn("analysis:event", (event: AnalysisEvent) => {
-      if (!jobID || event.jobId !== jobID) return;
+      if (jobID && event.jobId !== jobID) return;
+      if (!jobID && event.jobId) setJobID(event.jobId);
       if (event.kind === "output") {
         const readableText = readableProviderLine(event.text, event.provider);
         if (readableText) setResult((currentResult) => `${currentResult}${currentResult ? "\n\n" : ""}${readableText}`);
