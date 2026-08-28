@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { markTextMatches, regexError } from "./search";
+import { fuzzyFilter, fuzzyScore, markTextMatches, regexError } from "./search";
 
 describe("repository search matching", () => {
   it("treats punctuation literally by default", () => {
@@ -20,5 +20,11 @@ describe("repository search matching", () => {
   it("reports malformed expressions", () => {
     expect(regexError("[")).toContain("regular expression");
     expect(regexError("^src/.*\\.tsx$")).toBe("");
+  });
+
+  it("matches ordered characters and ranks tight filename matches first", () => {
+    expect(fuzzyScore("frontend/src/FirstRunGuide.tsx", "frg")).not.toBeNull();
+    expect(fuzzyScore("frontend/src/App.tsx", "frg")).toBeNull();
+    expect(fuzzyFilter(["some/far/repository-guide.md", "src/repo.go"], "rgo", (value) => value)[0]).toBe("src/repo.go");
   });
 });

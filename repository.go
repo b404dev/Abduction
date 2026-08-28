@@ -379,21 +379,65 @@ func (service *RepositoryService) SearchFilesPattern(repositoryPath string, quer
 	if commandError != nil {
 		return nil, commandError
 	}
-	results := make([]SearchResult, 0)
+	type rankedPath struct {
+		path  string
+		score int
+	}
+	rankedPaths := make([]rankedPath, 0)
 	for _, trackedPath := range strings.Split(string(outputBytes), "\x00") {
 		matches := pathPattern != nil && pathPattern.MatchString(trackedPath)
+		score := 0
 		if pathPattern == nil {
-			matches = strings.Contains(strings.ToLower(trackedPath), trimmedQuery)
+			score, matches = FuzzyPathScore(trackedPath, trimmedQuery)
 		}
 		if trackedPath == "" || !matches {
 			continue
 		}
-		results = append(results, SearchResult{Path: trackedPath, Preview: filepath.Dir(trackedPath), Kind: "file"})
-		if len(results) >= limit {
-			break
-		}
+		rankedPaths = append(rankedPaths, rankedPath{path: trackedPath, score: score})
+	}
+	if pathPattern == nil {
+		sort.SliceStable(rankedPaths, func(leftIndex int, rightIndex int) bool {
+			return rankedPaths[leftIndex].score < rankedPaths[rightIndex].score
+		})
+	}
+	if len(rankedPaths) > limit {
+		rankedPaths = rankedPaths[:limit]
+	}
+	results := make([]SearchResult, 0, len(rankedPaths))
+	for _, ranked := range rankedPaths {
+		results = append(results, SearchResult{Path: ranked.path, Preview: filepath.Dir(ranked.path), Kind: "file"})
 	}
 	return results, nil
+}
+
+// FuzzyPathScore matches query characters in order and favours tight,
+// consecutive matches at path-component boundaries.
+func FuzzyPathScore(candidate string, query string) (int, bool) {
+	haystack := strings.ToLower(candidate)
+	needle := strings.ToLower(strings.TrimSpace(query))
+	if needle == "" {
+		return 0, true
+	}
+	score := len(haystack) - len(needle)
+	previousIndex := -2
+	searchFrom := 0
+	for _, character := range needle {
+		matchOffset := strings.IndexRune(haystack[searchFrom:], character)
+		if matchOffset < 0 {
+			return 0, false
+		}
+		matchIndex := searchFrom + matchOffset
+		score += matchIndex - searchFrom
+		if matchIndex == previousIndex+1 {
+			score -= 4
+		}
+		if matchIndex == 0 || strings.ContainsRune("/._- ", rune(haystack[matchIndex-1])) {
+			score -= 6
+		}
+		previousIndex = matchIndex
+		searchFrom = matchIndex + 1
+	}
+	return score, true
 }
 
 // Commits reads all refs in Git's topological graph order.

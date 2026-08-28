@@ -24,6 +24,9 @@ body { background: var(--depth-canvas); }
 .shell::before { content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.22;background-image:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--accent) 10%,transparent) 1px,transparent 1px);background-size:54px 54px;mask-image:linear-gradient(to bottom,black,transparent 72%); }
 
 .titlebar { margin:0;padding:0 18px;border:0;border-bottom:1px solid color-mix(in srgb,var(--cyan) 24%,var(--border));border-radius:0;background:linear-gradient(100deg,color-mix(in srgb,var(--surface-2) 94%,var(--page)),color-mix(in srgb,var(--page) 92%,transparent))!important;box-shadow:0 14px 48px rgba(0,0,0,.38)!important; }
+.shell--mac .titlebar { --wails-draggable:no-drag; }
+.top-context,.repo-picker,.repo-picker *,.branch-picker,.branch-picker *,.titlebar__actions,.titlebar__actions * { --wails-draggable:no-drag!important;-webkit-app-region:no-drag; }
+.top-context,.repo-picker,.branch-picker,.titlebar__actions { position:relative;z-index:12;pointer-events:auto; }
 .titlebar::after { content:"";position:absolute;left:70px;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,var(--cyan),color-mix(in srgb,var(--accent) 32%,transparent) 38%,transparent 76%);box-shadow:0 0 16px color-mix(in srgb,var(--cyan) 52%,transparent); }
 .titlebar .brand__icon { border-radius:5px 14px 5px 14px;transform:rotate(-3deg); }
 .top-context { width:min(690px,100%); }

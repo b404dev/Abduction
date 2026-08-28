@@ -6,7 +6,7 @@ import type { AnalysisEvent, ScanEvent, ScannerInfo } from "./types";
 import { ClipboardSetText, EventsOn } from "../wailsjs/runtime/runtime";
 import { FirstRunGuide } from "./components/FirstRunGuide";
 import { Splash } from "./components/Splash";
-import { markTextMatches, regexError } from "./search";
+import { fuzzyFilter, markTextMatches, regexError } from "./search";
 
 const themes: { name: ThemeName; label: string; palette: string[] }[] = [
   { name: "reaper-dark", label: "Abduction Night", palette: ["#050713", "#315cff", "#19d9ff", "#a449ff"] },
@@ -160,7 +160,7 @@ export default function App() {
   if (!splashReady) return <Splash onComplete={() => { localStorage.setItem("abduction-splash-seen", String(Date.now())); setSplashReady(true); }} />;
   if (!bootstrap) return <Loading error={error} />;
   return (
-    <div className="shell">
+    <div className={bootstrap.platform === "macOS" ? "shell shell--mac" : "shell"}>
       <Titlebar version={bootstrap.version} platform={bootstrap.platform} repos={bootstrap.repos} selectedRepo={selectedRepo} onSelect={setSelectedRepo} onCloned={(repository) => { setSelectedRepo(repository); api.refreshRepos().then((repositories) => setBootstrap({ ...bootstrap, repos: repositories })).catch((reason: unknown) => recordError(String(reason))); }} onCommand={() => setCommandOpen(true)} onShortcuts={() => setShortcutsOpen(true)} onError={recordError} />
       <Rail view={view} onView={setView} errorCount={logs.length} />
       <main className="workspace">
@@ -230,7 +230,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   const sourceRepos = repositorySources[repoSource];
   const filteredRepos = useMemo(() => {
     const normalizedQuery = pickerQuery.trim().toLowerCase();
-    return normalizedQuery ? sourceRepos.filter((repository) => repository.fullName.toLowerCase().includes(normalizedQuery)) : sourceRepos;
+    return normalizedQuery ? fuzzyFilter(sourceRepos, normalizedQuery, (repository) => `${repository.fullName} ${repository.description}`) : sourceRepos;
   }, [pickerQuery, sourceRepos]);
 
   useEffect(() => { setActiveRepoIndex(0); }, [pickerQuery, pickerOpen, repoSource]);

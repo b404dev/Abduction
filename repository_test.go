@@ -224,6 +224,17 @@ func TestSearchFilesMatchesTrackedPaths(testingContext *testing.T) {
 	}
 }
 
+func TestFuzzyPathScoreMatchesOrderedCharacters(testingContext *testing.T) {
+	tightScore, tightMatch := FuzzyPathScore("src/repository.go", "rgo")
+	looseScore, looseMatch := FuzzyPathScore("some/remote/guide/output.go", "rgo")
+	if !tightMatch || !looseMatch || tightScore >= looseScore {
+		testingContext.Fatalf("expected tight fuzzy match to rank first: %d %d", tightScore, looseScore)
+	}
+	if _, matches := FuzzyPathScore("frontend/App.tsx", "rgo"); matches {
+		testingContext.Fatal("unexpected out-of-order fuzzy match")
+	}
+}
+
 func TestRegexSearchMatchesContentAndFilenames(testingContext *testing.T) {
 	repositoryPath := testingContext.TempDir()
 	for _, commandArguments := range [][]string{{"init"}, {"config", "user.email", "test@example.com"}, {"config", "user.name", "Test User"}} {

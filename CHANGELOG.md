@@ -16,6 +16,8 @@ All notable changes to Abduction are documented here. This project follows
 - Added a prominent Pull latest control, manual refresh, and automatic active-repository refresh when commits or working-tree files change in the background.
 - Resolved Homebrew's GitHub CLI from macOS GUI apps and surfaced remote-source loading/authentication failures in the repository picker.
 - Prevented remote-source spinners by skipping local metadata enrichment, loading organisations concurrently, and timing out stalled GitHub requests.
+- Added fzf-style ordered fuzzy matching and relevance ranking to repository switching and tracked-file search.
+- Kept macOS fullscreen titlebar controls outside draggable hit regions so the repository selector remains clickable.
 
 ## [0.1.2] - 2026-08-28
 

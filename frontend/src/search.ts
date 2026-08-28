@@ -3,6 +3,34 @@ export function regexError(query: string): string {
   catch (reason) { return reason instanceof Error ? reason.message : "Invalid regular expression"; }
 }
 
+// fuzzyScore implements fzf-style ordered matching; lower scores are better.
+export function fuzzyScore(candidate: string, query: string): number | null {
+  const haystack = candidate.toLowerCase();
+  const needle = query.trim().toLowerCase();
+  if (!needle) return 0;
+  let score = haystack.length - needle.length;
+  let previousIndex = -2;
+  let searchFrom = 0;
+  for (const character of needle) {
+    const matchIndex = haystack.indexOf(character, searchFrom);
+    if (matchIndex < 0) return null;
+    score += matchIndex - searchFrom;
+    if (matchIndex === previousIndex + 1) score -= 4;
+    if (matchIndex === 0 || "/._- ".includes(haystack[matchIndex - 1])) score -= 6;
+    previousIndex = matchIndex;
+    searchFrom = matchIndex + 1;
+  }
+  return score;
+}
+
+export function fuzzyFilter<T>(items: T[], query: string, text: (item: T) => string): T[] {
+  if (!query.trim()) return items;
+  return items.map((item, index) => ({ item, index, score: fuzzyScore(text(item), query) }))
+    .filter((entry): entry is { item: T; index: number; score: number } => entry.score !== null)
+    .sort((left, right) => left.score - right.score || left.index - right.index)
+    .map((entry) => entry.item);
+}
+
 // markTextMatches wraps literal or regular-expression matches without replacing syntax markup.
 export function markTextMatches(rootElement: HTMLElement, query: string, useRegex = false): HTMLElement[] {
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
