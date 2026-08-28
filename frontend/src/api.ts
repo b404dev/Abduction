@@ -18,6 +18,8 @@ interface AbductionBackend {
   ListRemoteDirectory(fullName: string, relativePath: string, branch: string): Promise<TreeEntry[]>;
   ReadRemoteFile(fullName: string, relativePath: string, branch: string, themeName: ThemeName): Promise<Document>;
   ReadRemoteOverview(fullName: string, branch: string, themeName: ThemeName): Promise<Document>;
+  RemoteBranches(fullName: string): Promise<string[]>;
+  PreloadRemoteRepository(fullName: string, branch: string): Promise<number>;
   Commits(repositoryPath: string): Promise<Commit[]>;
   RepositoryStats(repositoryPath: string): Promise<RepositoryStats>;
   PullRequests(repositoryPath: string): Promise<PullRequest[]>;
@@ -97,6 +99,8 @@ export const api = {
   listRemoteDirectory: (fullName: string, relativePath: string, branch: string): Promise<TreeEntry[]> => cached(cacheKey("remote-directory", fullName, relativePath, branch), () => backend().ListRemoteDirectory(fullName, relativePath, branch), 30_000),
   readRemoteFile: (fullName: string, relativePath: string, branch: string, themeName: ThemeName): Promise<Document> => cached(cacheKey("remote-document", fullName, relativePath, branch, themeName), () => backend().ReadRemoteFile(fullName, relativePath, branch, themeName), 30_000),
   readRemoteOverview: (fullName: string, branch: string, themeName: ThemeName): Promise<Document> => cached(cacheKey("remote-overview", fullName, branch, themeName), () => backend().ReadRemoteOverview(fullName, branch, themeName), 30_000),
+  remoteBranches: (fullName: string): Promise<string[]> => cached(cacheKey("remote-branches", fullName), () => backend().RemoteBranches(fullName), 30 * 60_000),
+  preloadRemoteRepository: (fullName: string, branch: string): Promise<number> => cached(cacheKey("remote-snapshot", fullName, branch), () => backend().PreloadRemoteRepository(fullName, branch)),
   commits: (repositoryPath: string): Promise<Commit[]> => cached(cacheKey("commits", repositoryPath), () => backend().Commits(repositoryPath), 15_000),
   repositoryStats: (repositoryPath: string): Promise<RepositoryStats> => cached(cacheKey("stats", repositoryPath), () => backend().RepositoryStats(repositoryPath), 60_000),
   pullRequests: (repositoryPath: string): Promise<PullRequest[]> => cached(cacheKey("pull-requests", repositoryPath), () => backend().PullRequests(repositoryPath), 60_000),

@@ -74,6 +74,14 @@ export default function App() {
     setRepositoryEpoch((currentEpoch) => currentEpoch + 1);
   }, [selectedRepo]);
 
+  const cloneRemoteRepository = useCallback(async (repository: Repo) => {
+    if (!repository.githubUrl || repository.path) return;
+    const clonedRepository = await api.cloneRepository(repository.githubUrl + ".git");
+    setSelectedRepo(clonedRepository);
+    const repositories = await api.refreshRepos();
+    setBootstrap((currentBootstrap) => currentBootstrap ? { ...currentBootstrap, repos: repositories } : currentBootstrap);
+  }, []);
+
   useEffect(() => {
     repositoryFingerprint.current = "";
     if (!selectedRepo?.path) return;
@@ -151,11 +159,12 @@ export default function App() {
       if (destination) { event.preventDefault(); setView(destination.name); return; }
       if (event.key.toLowerCase() === "e" && selectedRepo) { event.preventDefault(); api.openInEditor(selectedRepo.path, ""); return; }
       if (event.key.toLowerCase() === "g" && selectedRepo?.githubUrl) { event.preventDefault(); api.openOnGitHub(selectedRepo); return; }
+      if (event.key.toLowerCase() === "c" && selectedRepo && !selectedRepo.path && selectedRepo.githubUrl) { event.preventDefault(); void cloneRemoteRepository(selectedRepo).catch((reason: unknown) => recordError(String(reason))); return; }
       if (event.key === "?") { event.preventDefault(); setShortcutsOpen(true); }
     }
     window.addEventListener("keydown", handleGlobalShortcut);
     return () => window.removeEventListener("keydown", handleGlobalShortcut);
-  }, [selectedRepo]);
+  }, [selectedRepo, cloneRemoteRepository, recordError]);
 
   if (!splashReady) return <Splash onComplete={() => { localStorage.setItem("abduction-splash-seen", String(Date.now())); setSplashReady(true); }} />;
   if (!bootstrap) return <Loading error={error} />;
@@ -164,7 +173,7 @@ export default function App() {
       <Titlebar version={bootstrap.version} platform={bootstrap.platform} repos={bootstrap.repos} selectedRepo={selectedRepo} onSelect={setSelectedRepo} onCloned={(repository) => { setSelectedRepo(repository); api.refreshRepos().then((repositories) => setBootstrap({ ...bootstrap, repos: repositories })).catch((reason: unknown) => recordError(String(reason))); }} onCommand={() => setCommandOpen(true)} onShortcuts={() => setShortcutsOpen(true)} onError={recordError} />
       <Rail view={view} onView={setView} errorCount={logs.length} />
       <main className="workspace">
-        <WorkspaceHeader repo={selectedRepo} onClone={async (repository) => { const clonedRepository = await api.cloneRepository(repository.githubUrl + ".git"); setSelectedRepo(clonedRepository); const repositories = await api.refreshRepos(); setBootstrap({ ...bootstrap, repos: repositories }); }} onRefresh={refreshActiveRepository} onError={recordError} />
+        <WorkspaceHeader repo={selectedRepo} onClone={cloneRemoteRepository} onRefresh={refreshActiveRepository} onError={recordError} />
         {view === "themes" ? <ThemeSwitcher theme={theme} onTheme={updateTheme} /> : view === "logs" ? <LogsView logs={logs} onClear={() => setLogs([])} /> : view === "settings" ? <SettingsView bootstrap={bootstrap} onSaved={(nextBootstrap) => { setBootstrap(nextBootstrap); setTheme(nextBootstrap.config.theme); setSelectedRepo(nextBootstrap.repos.find((repository) => repository.path === selectedRepo?.path) ?? nextBootstrap.repos[0] ?? null); }} onError={recordError} /> : !selectedRepo ? <EmptyWorkspace workspace={bootstrap.config.workspace} onSetup={() => { setEmptySetupDismissed(false); setGuideOpen(true); }} onSettings={() => setView("settings")} /> : !selectedRepo.path && view !== "code" ? <RemoteRepositoryNotice repo={selectedRepo} /> : view === "code" ?
           <CodeView key={`${selectedRepo.path || selectedRepo.fullName}-${theme}-${repositoryEpoch}`} repo={selectedRepo} theme={theme} onError={recordError} /> : view === "history" ?
           <HistoryView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> : view === "stats" ?
@@ -242,9 +251,15 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   }, [pickerOpen, repos, onError]);
 
   useEffect(() => {
-    if (!selectedRepo?.path) { setBranches([]); return; }
-    api.branches(selectedRepo.path).then(setBranches).catch(() => setBranches([]));
+    if (!selectedRepo) { setBranches([]); return; }
+    const branchRequest = selectedRepo.path ? api.branches(selectedRepo.path) : api.remoteBranches(selectedRepo.fullName);
+    branchRequest.then(setBranches).catch((reason: unknown) => { setBranches([]); onError(String(reason)); });
   }, [selectedRepo]);
+
+  useEffect(() => {
+    const branchSelect = document.querySelector<HTMLSelectElement>(".branch-picker select");
+    if (branchSelect && selectedRepo && !selectedRepo.path) branchSelect.disabled = switchingBranch;
+  }, [selectedRepo, branches, switchingBranch]);
 
   useEffect(() => {
     // handleShortcut keeps repository switching available while reading any file.
@@ -270,6 +285,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   // chooseBranch checks out a known branch and refreshes the active repository context.
   function chooseBranch(branch: string) {
     if (!selectedRepo || branch === selectedRepo.branch) return;
+    if (!selectedRepo.path) { onSelect({ ...selectedRepo, branch }); return; }
     setSwitchingBranch(true);
     api.switchBranch(selectedRepo.path, branch).then((resolvedBranch) => onSelect({ ...selectedRepo, branch: resolvedBranch })).finally(() => setSwitchingBranch(false));
   }
@@ -285,6 +301,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   function handlePickerKey(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setActiveRepoIndex((currentIndex) => (currentIndex + (event.key === "ArrowDown" ? 1 : -1) + filteredRepos.length) % Math.max(filteredRepos.length, 1)); }
     if (event.key === "Enter" && filteredRepos[activeRepoIndex]) { event.preventDefault(); chooseRepository(filteredRepos[activeRepoIndex]); }
+    if (event.key.toLowerCase() === "c" && !pickerQuery && filteredRepos[activeRepoIndex] && !filteredRepos[activeRepoIndex].path) { event.preventDefault(); const repository = filteredRepos[activeRepoIndex]; setCloning(repository.fullName); api.cloneRepository(repository.githubUrl + ".git").then(onCloned).then(() => setPickerOpen(false)).catch((reason: unknown) => onError(String(reason))).finally(() => setCloning("")); }
   }
 
   return <><header className="titlebar"><BrandIdentity/><div className="top-context"><button className="repo-picker" onClick={() => setPickerOpen(true)}><span>Repository</span><strong>{selectedRepo?.fullName ?? "Select a repository"}</strong><kbd>⌘P</kbd></button><label className="branch-picker"><GitBranch size={15}/><select disabled={!selectedRepo?.path || switchingBranch} value={selectedRepo?.branch ?? ""} onChange={(event) => chooseBranch(event.target.value)} aria-label="Branch">{selectedRepo?.branch && !branches.includes(selectedRepo.branch) ? <option value={selectedRepo.branch}>{selectedRepo.branch}</option> : null}{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select></label></div><div className="titlebar__actions"><button onClick={onCommand} aria-label="Open command palette"><Command size={15}/><kbd>⌘K</kbd></button><button onClick={onShortcuts} aria-label="Show keyboard shortcuts"><Keyboard size={16}/></button><small>{platform} · v{version}</small></div></header>{pickerOpen ? <div className="picker-backdrop" onMouseDown={() => setPickerOpen(false)}><section className="picker" role="dialog" aria-modal="true" aria-label="Open repository" onMouseDown={(event) => event.stopPropagation()}><header><span className="eyebrow">Quick switch</span><h2>Open repository</h2></header><div className="repo-source-tabs">{(["yours", "organisations", "starred"] as const).map((source) => <button key={source} className={repoSource === source ? "repo-source-tab repo-source-tab--active" : "repo-source-tab"} onClick={() => setRepoSource(source)}><span>{source === "yours" ? "On disk" : source === "organisations" ? "Organisations" : "Starred"}</span><b>{repositorySources[source].length}</b></button>)}</div>{repositorySources.error ? <p className="picker-source-error">{repositorySources.error}</p> : null}<input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} onKeyDown={handlePickerKey} placeholder="Search owner or repository…"/><div className="picker__list" role="listbox">{loadingSources && repoSource !== "yours" ? <UfoLoader label={`loading ${repoSource}…`}/> : filteredRepos.map((repository, repositoryIndex) => <button key={repository.fullName} role="option" aria-selected={repositoryIndex === activeRepoIndex} className={repositoryIndex === activeRepoIndex ? "picker__option--active" : ""} onMouseEnter={() => setActiveRepoIndex(repositoryIndex)} onClick={() => chooseRepository(repository)} disabled={Boolean(cloning)}><span className="repo__glyph">{repository.path ? "⌁" : "☁"}</span><span><strong>{repository.name}</strong><small>{repository.owner} · {repository.language || "Unknown"}{repository.description ? ` · ${repository.description}` : ""}</small></span><span className={repository.path ? "repo-action repo-action--local" : "repo-action"}>{repository.path ? repository.branch || "On disk" : "View remote"}</span></button>)}{!loadingSources && !filteredRepos.length ? <p className="picker-empty">No repositories in this source.</p> : null}</div><div className="clone-box"><div><span className="eyebrow">Add to workspace</span><strong>Clone from URL</strong></div><div><input value={cloneURL} onChange={(event) => setCloneURL(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") cloneRepository(); }} placeholder="https://github.com/owner/repository.git"/><button className="primary" disabled={!cloneURL.trim() || Boolean(cloning)} onClick={cloneRepository}>{cloning === cloneURL.trim() ? "Cloning…" : "Clone"}</button></div></div><footer><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></footer></section></div> : null}</>;
@@ -362,9 +379,8 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const directoryRequest = repo.path ? api.listDirectory(repo.path, "") : api.listRemoteDirectory(repo.fullName, "", repo.branch);
-    const overviewRequest = repo.path ? api.readOverview(repo.path, theme) : api.readRemoteOverview(repo.fullName, repo.branch, theme);
-    Promise.all([directoryRequest, overviewRequest]).then(([rootEntries, overview]) => { setEntries(rootEntries); setDocument(overview); }).catch((reason: unknown) => onError(String(reason))).finally(() => setLoading(false));
+    const prepareRepository = repo.path ? Promise.resolve() : api.preloadRemoteRepository(repo.fullName, repo.branch).then(() => undefined);
+    prepareRepository.then(() => Promise.all([repo.path ? api.listDirectory(repo.path, "") : api.listRemoteDirectory(repo.fullName, "", repo.branch), repo.path ? api.readOverview(repo.path, theme) : api.readRemoteOverview(repo.fullName, repo.branch, theme)])).then(([rootEntries, overview]) => { setEntries(rootEntries); setDocument(overview); }).catch((reason: unknown) => onError(String(reason))).finally(() => setLoading(false));
   }, [repo.path, theme, onError]);
 
   useEffect(() => {

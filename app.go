@@ -234,6 +234,14 @@ func (app *App) ListRemoteDirectory(fullName string, relativePath string, branch
 	return app.repository.RemoteDirectory(fullName, relativePath, branch)
 }
 
+func (app *App) RemoteBranches(fullName string) ([]string, error) {
+	return app.repository.RemoteBranches(fullName)
+}
+
+func (app *App) PreloadRemoteRepository(fullName string, branch string) (int, error) {
+	return app.repository.PreloadRemoteRepository(fullName, branch)
+}
+
 func (app *App) ReadRemoteFile(fullName string, relativePath string, branch string, themeName string) (Document, error) {
 	sourceBytes, readError := app.repository.RemoteFile(fullName, relativePath, branch)
 	if readError != nil {

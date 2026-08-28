@@ -235,6 +235,17 @@ func TestFuzzyPathScoreMatchesOrderedCharacters(testingContext *testing.T) {
 	}
 }
 
+func TestGitHubRepositoryNameSupportsHTTPSAndSSH(testingContext *testing.T) {
+	for _, repositoryURL := range []string{"https://github.com/acme/project.git", "git@github.com:acme/project.git"} {
+		if fullName := GitHubRepositoryName(repositoryURL); fullName != "acme/project" {
+			testingContext.Fatalf("unexpected GitHub repository name %q for %q", fullName, repositoryURL)
+		}
+	}
+	if fullName := GitHubRepositoryName("https://example.com/acme/project.git"); fullName != "" {
+		testingContext.Fatalf("unexpected non-GitHub repository name %q", fullName)
+	}
+}
+
 func TestRegexSearchMatchesContentAndFilenames(testingContext *testing.T) {
 	repositoryPath := testingContext.TempDir()
 	for _, commandArguments := range [][]string{{"init"}, {"config", "user.email", "test@example.com"}, {"config", "user.name", "Test User"}} {

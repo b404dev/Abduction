@@ -21,6 +21,8 @@ All notable changes to Abduction are documented here. This project follows
 - Opened cloud repositories in a read-only GitHub-backed file browser without cloning, with cloning retained as a separate explicit action.
 - Fixed analysis event races and extracted readable assistant prose from current Codex and Claude JSONL event shapes.
 - Cached organisation and starred repository catalogues for 30 minutes instead of reloading them whenever the switcher opens.
+- Added `C` as a cloud-repository clone shortcut, enabled GitHub-backed remote branch switching, and routed authenticated GitHub clones through `gh repo clone`.
+- Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 
 ## [0.1.2] - 2026-08-28
 

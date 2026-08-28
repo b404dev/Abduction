@@ -54,6 +54,10 @@ export function OpenURL(arg1) {
   return window['go']['main']['App']['OpenURL'](arg1);
 }
 
+export function PreloadRemoteRepository(arg1, arg2) {
+  return window['go']['main']['App']['PreloadRemoteRepository'](arg1, arg2);
+}
+
 export function PullLatest(arg1) {
   return window['go']['main']['App']['PullLatest'](arg1);
 }
@@ -84,6 +88,10 @@ export function RefreshRepos() {
 
 export function RefreshRepository(arg1) {
   return window['go']['main']['App']['RefreshRepository'](arg1);
+}
+
+export function RemoteBranches(arg1) {
+  return window['go']['main']['App']['RemoteBranches'](arg1);
 }
 
 export function RepositoryFingerprint(arg1) {

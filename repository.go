@@ -1,6 +1,9 @@
 package main
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -25,12 +28,14 @@ var ErrNoGitHubRemote = errors.New("repository has no GitHub remote")
 
 // RepositoryService owns local repository discovery and read-only Git queries.
 type RepositoryService struct {
-	config Config
+	config          Config
+	remoteMutex     sync.RWMutex
+	remoteSnapshots map[string]map[string][]byte
 }
 
 // NewRepositoryService creates repository operations from the current configuration.
 func NewRepositoryService(configuration Config) *RepositoryService {
-	return &RepositoryService{config: configuration}
+	return &RepositoryService{config: configuration, remoteSnapshots: make(map[string]map[string][]byte)}
 }
 
 // ListFast discovers immediate Git checkouts without running repository analysis.
@@ -112,6 +117,26 @@ type githubContent struct {
 	Encoding string `json:"encoding"`
 }
 
+type githubBranch struct {
+	Name string `json:"name"`
+}
+
+// RemoteBranches lists every branch available to the authenticated viewer.
+func (service *RepositoryService) RemoteBranches(fullName string) ([]string, error) {
+	if !regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`).MatchString(fullName) {
+		return nil, errors.New("invalid GitHub repository name")
+	}
+	remoteBranches, branchError := loadGitHubPages[githubBranch]("repos/" + fullName + "/branches?per_page=100")
+	if branchError != nil {
+		return nil, branchError
+	}
+	branches := make([]string, 0, len(remoteBranches))
+	for _, branch := range remoteBranches {
+		branches = append(branches, branch.Name)
+	}
+	return branches, nil
+}
+
 func loadGitHubObject[T any](endpoint string) (T, error) {
 	var result T
 	githubPath, lookupError := ExecutablePath("gh")
@@ -146,8 +171,108 @@ func remoteContentsEndpoint(fullName string, relativePath string, branch string)
 	return endpoint, nil
 }
 
+// PreloadRemoteRepository downloads one branch archive into a read-only memory cache.
+func (service *RepositoryService) PreloadRemoteRepository(fullName string, branch string) (int, error) {
+	if _, validationError := remoteContentsEndpoint(fullName, "", ""); validationError != nil {
+		return 0, validationError
+	}
+	cacheKey := fullName + "\x00" + branch
+	service.remoteMutex.RLock()
+	existing := service.remoteSnapshots[cacheKey]
+	service.remoteMutex.RUnlock()
+	if existing != nil {
+		return len(existing), nil
+	}
+	githubPath, lookupError := ExecutablePath("gh")
+	if lookupError != nil {
+		return 0, lookupError
+	}
+	requestContext, cancelRequest := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancelRequest()
+	endpoint := "repos/" + fullName + "/tarball"
+	if branch != "" {
+		endpoint += "/" + url.PathEscape(branch)
+	}
+	archiveBytes, archiveError := exec.CommandContext(requestContext, githubPath, "api", endpoint).Output()
+	if archiveError != nil {
+		return 0, fmt.Errorf("remote repository download failed: %w", archiveError)
+	}
+	gzipReader, gzipError := gzip.NewReader(bytes.NewReader(archiveBytes))
+	if gzipError != nil {
+		return 0, gzipError
+	}
+	defer gzipReader.Close()
+	files, totalBytes := make(map[string][]byte), int64(0)
+	tarReader := tar.NewReader(gzipReader)
+	for {
+		header, nextError := tarReader.Next()
+		if errors.Is(nextError, io.EOF) {
+			break
+		}
+		if nextError != nil {
+			return 0, nextError
+		}
+		if header.Typeflag != tar.TypeReg || header.Size > maximumReadableFileSize {
+			continue
+		}
+		pathParts := strings.SplitN(filepath.ToSlash(header.Name), "/", 2)
+		if len(pathParts) != 2 || pathParts[1] == "" {
+			continue
+		}
+		totalBytes += header.Size
+		if totalBytes > 256*1024*1024 {
+			return 0, errors.New("remote repository exceeds the 256 MB viewer cache limit")
+		}
+		fileBytes := make([]byte, header.Size)
+		if _, readError := io.ReadFull(tarReader, fileBytes); readError != nil {
+			return 0, readError
+		}
+		files[pathParts[1]] = fileBytes
+	}
+	service.remoteMutex.Lock()
+	service.remoteSnapshots[cacheKey] = files
+	service.remoteMutex.Unlock()
+	return len(files), nil
+}
+
+func (service *RepositoryService) remoteSnapshot(fullName string, branch string) map[string][]byte {
+	service.remoteMutex.RLock()
+	defer service.remoteMutex.RUnlock()
+	return service.remoteSnapshots[fullName+"\x00"+branch]
+}
+
 // RemoteDirectory lists one GitHub directory without creating a checkout.
 func (service *RepositoryService) RemoteDirectory(fullName string, relativePath string, branch string) ([]TreeEntry, error) {
+	if snapshot := service.remoteSnapshot(fullName, branch); snapshot != nil {
+		prefix := strings.Trim(filepath.ToSlash(relativePath), "/")
+		if prefix != "" {
+			prefix += "/"
+		}
+		seen := make(map[string]TreeEntry)
+		for filePath, fileBytes := range snapshot {
+			if !strings.HasPrefix(filePath, prefix) {
+				continue
+			}
+			remainder := strings.TrimPrefix(filePath, prefix)
+			parts := strings.SplitN(remainder, "/", 2)
+			kind, size := "file", int64(len(fileBytes))
+			if len(parts) == 2 {
+				kind, size = "directory", 0
+			}
+			seen[parts[0]] = TreeEntry{Name: parts[0], Path: strings.TrimSuffix(prefix+parts[0], "/"), Kind: kind, Size: size}
+		}
+		entries := make([]TreeEntry, 0, len(seen))
+		for _, entry := range seen {
+			entries = append(entries, entry)
+		}
+		sort.Slice(entries, func(i, j int) bool {
+			if entries[i].Kind != entries[j].Kind {
+				return entries[i].Kind == "directory"
+			}
+			return strings.ToLower(entries[i].Name) < strings.ToLower(entries[j].Name)
+		})
+		return entries, nil
+	}
 	endpoint, endpointError := remoteContentsEndpoint(fullName, relativePath, branch)
 	if endpointError != nil {
 		return nil, endpointError
@@ -175,6 +300,13 @@ func (service *RepositoryService) RemoteDirectory(fullName string, relativePath 
 
 // RemoteFile downloads one GitHub file through the authenticated API.
 func (service *RepositoryService) RemoteFile(fullName string, relativePath string, branch string) ([]byte, error) {
+	if snapshot := service.remoteSnapshot(fullName, branch); snapshot != nil {
+		fileBytes, found := snapshot[strings.Trim(filepath.ToSlash(relativePath), "/")]
+		if !found {
+			return nil, errors.New("remote file was not found in the loaded repository")
+		}
+		return fileBytes, nil
+	}
 	endpoint, endpointError := remoteContentsEndpoint(fullName, relativePath, branch)
 	if endpointError != nil {
 		return nil, endpointError
@@ -337,6 +469,13 @@ func (service *RepositoryService) Clone(repositoryURL string) (Repo, error) {
 		return Repo{}, errors.New("a workspace folder with this repository name already exists")
 	}
 	command := exec.Command("git", "clone", "--", trimmedURL, destinationPath)
+	if githubRepositoryName := GitHubRepositoryName(trimmedURL); githubRepositoryName != "" {
+		githubPath, lookupError := ExecutablePath("gh")
+		if lookupError != nil {
+			return Repo{}, errors.New("GitHub CLI is required to clone this authenticated repository")
+		}
+		command = exec.Command(githubPath, "repo", "clone", githubRepositoryName, destinationPath)
+	}
 	outputBytes, cloneError := command.CombinedOutput()
 	if cloneError != nil {
 		return Repo{}, fmt.Errorf("clone failed: %s", strings.TrimSpace(string(outputBytes)))
@@ -347,6 +486,21 @@ func (service *RepositoryService) Clone(repositoryURL string) (Repo, error) {
 		}
 	}
 	return Repo{}, errors.New("repository cloned but could not be discovered")
+}
+
+// GitHubRepositoryName extracts owner/name from supported GitHub clone URLs.
+func GitHubRepositoryName(repositoryURL string) string {
+	normalizedURL := strings.TrimSuffix(strings.TrimSpace(repositoryURL), ".git")
+	normalizedURL = strings.TrimSuffix(normalizedURL, "/")
+	for _, prefix := range []string{"https://github.com/", "http://github.com/", "ssh://git@github.com/", "git@github.com:"} {
+		if strings.HasPrefix(normalizedURL, prefix) {
+			fullName := strings.TrimPrefix(normalizedURL, prefix)
+			if regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`).MatchString(fullName) {
+				return fullName
+			}
+		}
+	}
+	return ""
 }
 
 // ListDirectory returns directories first and hides Git's internal metadata.

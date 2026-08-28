@@ -28,6 +28,8 @@ export function OpenRepositoryOnGitHub(arg1:main.Repo):Promise<void>;
 
 export function OpenURL(arg1:string):Promise<void>;
 
+export function PreloadRemoteRepository(arg1:string,arg2:string):Promise<number>;
+
 export function PullLatest(arg1:string):Promise<string>;
 
 export function PullRequests(arg1:string):Promise<Array<main.PullRequest>>;
@@ -43,6 +45,8 @@ export function ReadRemoteOverview(arg1:string,arg2:string,arg3:string):Promise<
 export function RefreshRepos():Promise<Array<main.Repo>>;
 
 export function RefreshRepository(arg1:string):Promise<void>;
+
+export function RemoteBranches(arg1:string):Promise<Array<string>>;
 
 export function RepositoryFingerprint(arg1:string):Promise<string>;
 
