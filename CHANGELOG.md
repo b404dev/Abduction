@@ -13,6 +13,7 @@ All notable changes to Abduction are documented here. This project follows
 - Explicitly enabled native macOS zoom and full-screen support.
 - Loaded every accessible repository from every GitHub organisation, with clear clone-to-workspace actions for remote-only repositories.
 - Added a safe, fast-forward-only Pull latest action for local repositories.
+- Added a prominent Pull latest control, manual refresh, and automatic active-repository refresh when commits or working-tree files change in the background.
 
 ## [0.1.2] - 2026-08-28
 

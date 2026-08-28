@@ -63,15 +63,46 @@ func TestFastRepositoryDiscoveryReportsUnreadableWorkspace(testingContext *testi
 	}
 }
 
-// TestFlattenGitHubPages protects complete organisation listings beyond 100 repos.
-func TestFlattenGitHubPages(testingContext *testing.T) {
-	pages := []byte(`[[{"name":"one"}],[{"name":"two"},{"name":"three"}]]`)
-	repositories, flattenError := flattenGitHubPages[githubRepository](pages)
-	if flattenError != nil {
-		testingContext.Fatal(flattenError)
+// TestDecodeGitHubStream protects complete organisation listings beyond 100 repos.
+func TestDecodeGitHubStream(testingContext *testing.T) {
+	stream := []byte("{\"name\":\"one\"}\n{\"name\":\"two\"}\n{\"name\":\"three\"}\n")
+	repositories, decodeError := decodeGitHubStream[githubRepository](stream)
+	if decodeError != nil {
+		testingContext.Fatal(decodeError)
 	}
 	if len(repositories) != 3 || repositories[0].Name != "one" || repositories[2].Name != "three" {
 		testingContext.Fatalf("unexpected paginated repositories: %#v", repositories)
+	}
+}
+
+// TestRepositoryFingerprintChangesWithWorkingTree protects live UI refreshes.
+func TestRepositoryFingerprintChangesWithWorkingTree(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	for _, commandArguments := range [][]string{{"init"}, {"config", "user.email", "refresh@example.test"}, {"config", "user.name", "Refresh Test"}} {
+		command := exec.Command("git", commandArguments...)
+		command.Dir = repositoryPath
+		if outputBytes, commandError := command.CombinedOutput(); commandError != nil {
+			testingContext.Fatalf("git setup failed: %s", outputBytes)
+		}
+	}
+	filePath := filepath.Join(repositoryPath, "README.md")
+	if writeError := os.WriteFile(filePath, []byte("one\n"), 0o644); writeError != nil {
+		testingContext.Fatal(writeError)
+	}
+	service := NewRepositoryService(Config{})
+	firstFingerprint, firstError := service.Fingerprint(repositoryPath)
+	if firstError != nil {
+		testingContext.Fatal(firstError)
+	}
+	if writeError := os.WriteFile(filePath, []byte("two is longer\n"), 0o644); writeError != nil {
+		testingContext.Fatal(writeError)
+	}
+	secondFingerprint, secondError := service.Fingerprint(repositoryPath)
+	if secondError != nil {
+		testingContext.Fatal(secondError)
+	}
+	if firstFingerprint == secondFingerprint {
+		testingContext.Fatal("expected working-tree edit to change repository fingerprint")
 	}
 }
 

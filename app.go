@@ -279,6 +279,16 @@ func (app *App) PullLatest(repositoryPath string) (string, error) {
 	return output, pullError
 }
 
+// RepositoryFingerprint lets the UI detect commits and working-tree changes.
+func (app *App) RepositoryFingerprint(repositoryPath string) (string, error) {
+	return app.repository.Fingerprint(repositoryPath)
+}
+
+// RefreshRepository clears cached data before a manual or automatic reload.
+func (app *App) RefreshRepository(repositoryPath string) {
+	app.invalidateRepository(repositoryPath)
+}
+
 // invalidateRepository removes data made stale by a branch or working-tree transition.
 func (app *App) invalidateRepository(repositoryPath string) {
 	app.commits.Delete(repositoryPath)

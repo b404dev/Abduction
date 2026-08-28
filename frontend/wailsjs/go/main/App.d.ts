@@ -36,6 +36,10 @@ export function ReadOverview(arg1:string,arg2:string):Promise<main.Document>;
 
 export function RefreshRepos():Promise<Array<main.Repo>>;
 
+export function RefreshRepository(arg1:string):Promise<void>;
+
+export function RepositoryFingerprint(arg1:string):Promise<string>;
+
 export function RepositorySources():Promise<main.RepositorySources>;
 
 export function RepositoryStats(arg1:string):Promise<main.RepositoryStats>;

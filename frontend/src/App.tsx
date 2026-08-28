@@ -58,6 +58,8 @@ export default function App() {
   const [emptySetupDismissed, setEmptySetupDismissed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [repositoryEpoch, setRepositoryEpoch] = useState(0);
+  const repositoryFingerprint = useRef("");
 
   // recordError retains actionable failures in the diagnostic workspace.
   const recordError = useCallback((message: string) => {
@@ -65,6 +67,29 @@ export default function App() {
     setError(normalizedMessage);
     setLogs((currentLogs) => [...currentLogs.slice(-249), { id: Date.now() + currentLogs.length, timestamp: new Date().toISOString(), level: "error", message: normalizedMessage }]);
   }, []);
+
+  const refreshActiveRepository = useCallback(async () => {
+    if (!selectedRepo) return;
+    await api.refreshRepository(selectedRepo.path);
+    setRepositoryEpoch((currentEpoch) => currentEpoch + 1);
+  }, [selectedRepo]);
+
+  useEffect(() => {
+    repositoryFingerprint.current = "";
+    if (!selectedRepo) return;
+    let stopped = false;
+    const checkForChanges = async () => {
+      try {
+        const nextFingerprint = await api.repositoryFingerprint(selectedRepo.path);
+        if (stopped) return;
+        if (repositoryFingerprint.current && repositoryFingerprint.current !== nextFingerprint) await refreshActiveRepository();
+        repositoryFingerprint.current = nextFingerprint;
+      } catch { /* Background refresh remains best-effort. */ }
+    };
+    void checkForChanges();
+    const refreshTimer = window.setInterval(() => { void checkForChanges(); }, 5000);
+    return () => { stopped = true; window.clearInterval(refreshTimer); };
+  }, [selectedRepo, refreshActiveRepository]);
 
   useEffect(() => {
     api.bootstrap().then((initialState) => {
@@ -139,14 +164,14 @@ export default function App() {
       <Titlebar version={bootstrap.version} platform={bootstrap.platform} repos={bootstrap.repos} selectedRepo={selectedRepo} onSelect={setSelectedRepo} onCloned={(repository) => { setSelectedRepo(repository); api.refreshRepos().then((repositories) => setBootstrap({ ...bootstrap, repos: repositories })).catch((reason: unknown) => recordError(String(reason))); }} onCommand={() => setCommandOpen(true)} onShortcuts={() => setShortcutsOpen(true)} onError={recordError} />
       <Rail view={view} onView={setView} errorCount={logs.length} />
       <main className="workspace">
-        <WorkspaceHeader repo={selectedRepo} onError={recordError} />
+        <WorkspaceHeader repo={selectedRepo} onRefresh={refreshActiveRepository} onError={recordError} />
         {view === "themes" ? <ThemeSwitcher theme={theme} onTheme={updateTheme} /> : view === "logs" ? <LogsView logs={logs} onClear={() => setLogs([])} /> : view === "settings" ? <SettingsView bootstrap={bootstrap} onSaved={(nextBootstrap) => { setBootstrap(nextBootstrap); setTheme(nextBootstrap.config.theme); setSelectedRepo(nextBootstrap.repos.find((repository) => repository.path === selectedRepo?.path) ?? nextBootstrap.repos[0] ?? null); }} onError={recordError} /> : !selectedRepo ? <EmptyWorkspace workspace={bootstrap.config.workspace} onSetup={() => { setEmptySetupDismissed(false); setGuideOpen(true); }} onSettings={() => setView("settings")} /> : view === "code" ?
-          <CodeView key={`${selectedRepo.path}-${theme}`} repo={selectedRepo} theme={theme} onError={recordError} /> : view === "history" ?
-          <HistoryView key={selectedRepo.path} repo={selectedRepo} onError={recordError} /> : view === "stats" ?
-          <StatsView key={selectedRepo.path} repo={selectedRepo} onError={recordError} /> :
-          view === "reviews" ? <ReviewsView key={selectedRepo.path} repo={selectedRepo} onError={recordError} /> :
-          view === "security" ? <SecurityView key={selectedRepo.path} repo={selectedRepo} onError={recordError} /> :
-          view === "analysis" ? <AnalysisView key={selectedRepo.path} repo={selectedRepo} tools={bootstrap.tools} onError={recordError} /> :
+          <CodeView key={`${selectedRepo.path}-${theme}-${repositoryEpoch}`} repo={selectedRepo} theme={theme} onError={recordError} /> : view === "history" ?
+          <HistoryView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> : view === "stats" ?
+          <StatsView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> :
+          view === "reviews" ? <ReviewsView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> :
+          view === "security" ? <SecurityView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> :
+          view === "analysis" ? <AnalysisView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} tools={bootstrap.tools} onError={recordError} /> :
           <ToolsView tools={bootstrap.tools} />}
       </main>
       {commandOpen ? <CommandPalette commands={commands} onClose={() => setCommandOpen(false)}/> : null}
@@ -301,16 +326,16 @@ function Rail({ view, onView, errorCount }: { view: ViewName; onView: (view: Vie
 }
 
 // WorkspaceHeader shows repository context and global appearance controls.
-function WorkspaceHeader({ repo, onError }: { repo: Repo | null; onError: (message: string) => void }) {
+function WorkspaceHeader({ repo, onRefresh, onError }: { repo: Repo | null; onRefresh: () => Promise<void>; onError: (message: string) => void }) {
   const [pulling, setPulling] = useState(false);
   const [pullStatus, setPullStatus] = useState("");
   function pullLatest() {
     if (!repo || pulling) return;
     setPulling(true); setPullStatus("");
-    api.pullLatest(repo.path).then((output) => setPullStatus(output.includes("Already up to date") ? "Up to date" : "Updated")).catch((reason: unknown) => onError(String(reason))).finally(() => setPulling(false));
+    api.pullLatest(repo.path).then(async (output) => { setPullStatus(output.includes("Already up to date") ? "Up to date" : "Updated"); await onRefresh(); }).catch((reason: unknown) => onError(String(reason))).finally(() => setPulling(false));
   }
   useEffect(() => { setPullStatus(""); }, [repo?.path]);
-  return <header className="workspace__header"><div>{repo ? <><span className="eyebrow">{repo.language}</span><h1>{repo.name}</h1></> : <h1>Choose a repository</h1>}</div><div className="header-actions">{pullStatus ? <span className="pull-status">{pullStatus}</span> : null}{repo ? <button className="ghost" disabled={pulling} onClick={pullLatest}>{pulling ? "Pulling…" : "Pull latest"}</button> : null}{repo ? <button className="ghost" onClick={() => api.openInEditor(repo.path, "")}>Open editor</button> : null}{repo?.githubUrl ? <button className="primary" onClick={() => api.openOnGitHub(repo)}>GitHub ↗</button> : null}</div></header>;
+  return <header className="workspace__header"><div>{repo ? <><span className="eyebrow">{repo.language}</span><h1>{repo.name}</h1></> : <h1>Choose a repository</h1>}</div><div className="header-actions">{pullStatus ? <span className="pull-status">{pullStatus}</span> : null}{repo ? <button className="ghost refresh-action" onClick={() => void onRefresh()}>Refresh</button> : null}{repo ? <button className="primary pull-action" disabled={pulling} onClick={pullLatest}>{pulling ? "Pulling…" : "Pull latest"}</button> : null}{repo ? <button className="ghost editor-action" onClick={() => api.openInEditor(repo.path, "")}>Open editor</button> : null}{repo?.githubUrl ? <button className="ghost github-action" onClick={() => api.openOnGitHub(repo)}>GitHub ↗</button> : null}</div></header>;
 }
 
 // CodeView combines a lazy file browser with the rich document reader.

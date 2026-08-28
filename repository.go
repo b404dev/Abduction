@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -96,23 +98,29 @@ type githubOrganisation struct {
 	Login string `json:"login"`
 }
 
-// loadGitHubPages asks gh to follow every REST page and returns one flat list.
+// loadGitHubPages asks gh to follow every REST page and emits a compatible
+// object stream instead of relying on the newer --slurp option.
 func loadGitHubPages[T any](endpoint string) ([]T, error) {
-	outputBytes, commandError := exec.Command("gh", "api", "--paginate", "--slurp", endpoint).Output()
+	outputBytes, commandError := exec.Command("gh", "api", "--paginate", "--jq", ".[]", endpoint).Output()
 	if commandError != nil {
 		return nil, commandError
 	}
-	return flattenGitHubPages[T](outputBytes)
+	return decodeGitHubStream[T](outputBytes)
 }
 
-func flattenGitHubPages[T any](outputBytes []byte) ([]T, error) {
-	var pages [][]T
-	if unmarshalError := json.Unmarshal(outputBytes, &pages); unmarshalError != nil {
-		return nil, unmarshalError
-	}
+func decodeGitHubStream[T any](outputBytes []byte) ([]T, error) {
+	decoder := json.NewDecoder(strings.NewReader(string(outputBytes)))
 	items := make([]T, 0)
-	for _, page := range pages {
-		items = append(items, page...)
+	for {
+		var item T
+		decodeError := decoder.Decode(&item)
+		if errors.Is(decodeError, io.EOF) {
+			break
+		}
+		if decodeError != nil {
+			return nil, decodeError
+		}
+		items = append(items, item)
 	}
 	return items, nil
 }
@@ -137,25 +145,38 @@ func (service *RepositoryService) Sources() RepositorySources {
 		return Repo{Name: remote.Name, Owner: remote.Owner.Login, FullName: remote.FullName, Branch: remote.DefaultBranch, Language: remote.Language, Updated: remote.PushedAt, GitHubURL: remote.HTMLURL, Description: remote.Description}
 	}
 	organisations, organisationsError := loadGitHubPages[githubOrganisation]("user/orgs?per_page=100")
+	seenOrganisations := make(map[string]bool)
+	addOrganisationRepositories := func(repositories []githubRepository) {
+		for _, remote := range repositories {
+			key := strings.ToLower(remote.FullName)
+			if !seenOrganisations[key] {
+				result.Organisations = append(result.Organisations, toRepo(remote))
+				seenOrganisations[key] = true
+			}
+		}
+	}
 	if organisationsError == nil {
-		seenOrganisations := make(map[string]bool)
 		for _, organisation := range organisations {
 			organisationRepositories, organisationError := loadGitHubPages[githubRepository]("orgs/" + organisation.Login + "/repos?per_page=100&sort=pushed&type=all")
 			if organisationError != nil {
 				result.Error = "Some organisation repositories could not be loaded."
 				continue
 			}
-			for _, remote := range organisationRepositories {
-				key := strings.ToLower(remote.FullName)
-				if !seenOrganisations[key] {
-					result.Organisations = append(result.Organisations, toRepo(remote))
-					seenOrganisations[key] = true
-				}
-			}
+			addOrganisationRepositories(organisationRepositories)
 		}
-	} else {
-		result.Error = "Organisation repositories could not be loaded."
 	}
+	// This endpoint remains useful when organisation membership visibility or
+	// token scopes prevent user/orgs from returning the organisation itself.
+	memberRepositories, memberError := loadGitHubPages[githubRepository]("user/repos?per_page=100&affiliation=organization_member&sort=pushed")
+	if memberError == nil {
+		addOrganisationRepositories(memberRepositories)
+	}
+	if len(result.Organisations) == 0 && (organisationsError != nil || memberError != nil) {
+		result.Error = "Organisation repositories need GitHub organisation access. Run: gh auth refresh -s read:org"
+	}
+	sort.Slice(result.Organisations, func(leftIndex int, rightIndex int) bool {
+		return strings.ToLower(result.Organisations[leftIndex].FullName) < strings.ToLower(result.Organisations[rightIndex].FullName)
+	})
 	if starredRepositories, starredError := loadGitHubPages[githubRepository]("user/starred?per_page=100"); starredError == nil {
 		for _, remote := range starredRepositories {
 			result.Starred = append(result.Starred, toRepo(remote))
@@ -470,6 +491,36 @@ func (service *RepositoryService) PullLatest(repositoryPath string) (string, err
 		output = "Repository is up to date."
 	}
 	return output, nil
+}
+
+// Fingerprint cheaply identifies commits and working-tree paths that changed.
+func (service *RepositoryService) Fingerprint(repositoryPath string) (string, error) {
+	if !IsGitRepository(repositoryPath) {
+		return "", errors.New("not a Git repository")
+	}
+	statusCommand := exec.Command("git", "status", "--porcelain=v1", "-z", "--untracked-files=all")
+	statusCommand.Dir = repositoryPath
+	statusBytes, statusError := statusCommand.Output()
+	if statusError != nil {
+		return "", statusError
+	}
+	fingerprint := sha256.New()
+	fingerprint.Write([]byte(RunGit(repositoryPath, "rev-parse", "HEAD")))
+	fingerprint.Write(statusBytes)
+	for _, statusEntry := range strings.Split(string(statusBytes), "\x00") {
+		if len(statusEntry) < 4 {
+			continue
+		}
+		relativePath := strings.TrimSpace(statusEntry[3:])
+		targetPath, pathError := SafeRepositoryPath(repositoryPath, relativePath)
+		if pathError != nil {
+			continue
+		}
+		if fileInfo, statError := os.Stat(targetPath); statError == nil {
+			fmt.Fprintf(fingerprint, "%s:%d:%d", relativePath, fileInfo.Size(), fileInfo.ModTime().UnixNano())
+		}
+	}
+	return fmt.Sprintf("%x", fingerprint.Sum(nil)), nil
 }
 
 // OpenInEditor starts the configured editor without blocking Abduction.

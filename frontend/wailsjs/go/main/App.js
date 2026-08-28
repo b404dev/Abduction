@@ -70,6 +70,14 @@ export function RefreshRepos() {
   return window['go']['main']['App']['RefreshRepos']();
 }
 
+export function RefreshRepository(arg1) {
+  return window['go']['main']['App']['RefreshRepository'](arg1);
+}
+
+export function RepositoryFingerprint(arg1) {
+  return window['go']['main']['App']['RepositoryFingerprint'](arg1);
+}
+
 export function RepositorySources() {
   return window['go']['main']['App']['RepositorySources']();
 }
