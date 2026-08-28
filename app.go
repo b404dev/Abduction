@@ -269,6 +269,16 @@ func (app *App) SwitchBranch(repositoryPath string, branch string) (string, erro
 	return resolvedBranch, switchError
 }
 
+// PullLatest fast-forwards a local repository and invalidates derived views.
+func (app *App) PullLatest(repositoryPath string) (string, error) {
+	output, pullError := app.repository.PullLatest(repositoryPath)
+	if pullError == nil {
+		app.invalidateRepository(repositoryPath)
+		app.repositories.Clear()
+	}
+	return output, pullError
+}
+
 // invalidateRepository removes data made stale by a branch or working-tree transition.
 func (app *App) invalidateRepository(repositoryPath string) {
 	app.commits.Delete(repositoryPath)

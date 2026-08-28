@@ -11,6 +11,8 @@ All notable changes to Abduction are documented here. This project follows
 - Made large workspaces appear immediately before repository metadata enrichment finishes.
 - Surfaced macOS workspace permission/read errors in the connection wizard.
 - Explicitly enabled native macOS zoom and full-screen support.
+- Loaded every accessible repository from every GitHub organisation, with clear clone-to-workspace actions for remote-only repositories.
+- Added a safe, fast-forward-only Pull latest action for local repositories.
 
 ## [0.1.2] - 2026-08-28
 

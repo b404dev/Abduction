@@ -50,6 +50,10 @@ export function OpenURL(arg1) {
   return window['go']['main']['App']['OpenURL'](arg1);
 }
 
+export function PullLatest(arg1) {
+  return window['go']['main']['App']['PullLatest'](arg1);
+}
+
 export function PullRequests(arg1) {
   return window['go']['main']['App']['PullRequests'](arg1);
 }

@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -93,16 +92,39 @@ type githubRepository struct {
 	} `json:"owner"`
 }
 
+type githubOrganisation struct {
+	Login string `json:"login"`
+}
+
+// loadGitHubPages asks gh to follow every REST page and returns one flat list.
+func loadGitHubPages[T any](endpoint string) ([]T, error) {
+	outputBytes, commandError := exec.Command("gh", "api", "--paginate", "--slurp", endpoint).Output()
+	if commandError != nil {
+		return nil, commandError
+	}
+	return flattenGitHubPages[T](outputBytes)
+}
+
+func flattenGitHubPages[T any](outputBytes []byte) ([]T, error) {
+	var pages [][]T
+	if unmarshalError := json.Unmarshal(outputBytes, &pages); unmarshalError != nil {
+		return nil, unmarshalError
+	}
+	items := make([]T, 0)
+	for _, page := range pages {
+		items = append(items, page...)
+	}
+	return items, nil
+}
+
 // Sources groups local checkouts with the authenticated user's GitHub sources.
 func (service *RepositoryService) Sources() RepositorySources {
 	localRepositories := service.List()
 	result := RepositorySources{Yours: localRepositories, Organisations: []Repo{}, Starred: []Repo{}}
-	loginBytes, loginError := exec.Command("gh", "api", "user", "--jq", ".login").Output()
-	if loginError != nil {
+	if _, loginError := exec.Command("gh", "api", "user", "--jq", ".login").Output(); loginError != nil {
 		result.Error = "GitHub sources need an authenticated gh CLI; showing local repositories."
 		return result
 	}
-	login := strings.TrimSpace(string(loginBytes))
 	localByName := make(map[string]Repo)
 	for _, repository := range localRepositories {
 		localByName[strings.ToLower(repository.FullName)] = repository
@@ -114,33 +136,27 @@ func (service *RepositoryService) Sources() RepositorySources {
 		}
 		return Repo{Name: remote.Name, Owner: remote.Owner.Login, FullName: remote.FullName, Branch: remote.DefaultBranch, Language: remote.Language, Updated: remote.PushedAt, GitHubURL: remote.HTMLURL, Description: remote.Description}
 	}
-	load := func(endpoint string) ([]githubRepository, error) {
-		outputBytes, commandError := exec.Command("gh", "api", endpoint).Output()
-		if commandError != nil {
-			return nil, commandError
+	organisations, organisationsError := loadGitHubPages[githubOrganisation]("user/orgs?per_page=100")
+	if organisationsError == nil {
+		seenOrganisations := make(map[string]bool)
+		for _, organisation := range organisations {
+			organisationRepositories, organisationError := loadGitHubPages[githubRepository]("orgs/" + organisation.Login + "/repos?per_page=100&sort=pushed&type=all")
+			if organisationError != nil {
+				result.Error = "Some organisation repositories could not be loaded."
+				continue
+			}
+			for _, remote := range organisationRepositories {
+				key := strings.ToLower(remote.FullName)
+				if !seenOrganisations[key] {
+					result.Organisations = append(result.Organisations, toRepo(remote))
+					seenOrganisations[key] = true
+				}
+			}
 		}
-		var repositories []githubRepository
-		return repositories, json.Unmarshal(outputBytes, &repositories)
+	} else {
+		result.Error = "Organisation repositories could not be loaded."
 	}
-	remoteRepositories, remoteError := load("user/repos?per_page=100&affiliation=owner,organization_member&sort=pushed")
-	if remoteError != nil {
-		result.Error = "GitHub repository sources could not be loaded; showing local repositories."
-		return result
-	}
-	result.Yours = []Repo{}
-	for _, remote := range remoteRepositories {
-		if strings.EqualFold(remote.Owner.Login, login) {
-			result.Yours = append(result.Yours, toRepo(remote))
-		} else if remote.Owner.Type == "Organization" {
-			result.Organisations = append(result.Organisations, toRepo(remote))
-		}
-	}
-	for _, local := range localRepositories {
-		if _, found := localByName[strings.ToLower(local.FullName)]; found && !slices.ContainsFunc(result.Yours, func(repository Repo) bool { return repository.Path == local.Path }) && !slices.ContainsFunc(result.Organisations, func(repository Repo) bool { return repository.Path == local.Path }) {
-			result.Yours = append(result.Yours, local)
-		}
-	}
-	if starredRepositories, starredError := load("user/starred?per_page=100"); starredError == nil {
+	if starredRepositories, starredError := loadGitHubPages[githubRepository]("user/starred?per_page=100"); starredError == nil {
 		for _, remote := range starredRepositories {
 			result.Starred = append(result.Starred, toRepo(remote))
 		}
@@ -433,6 +449,27 @@ func (service *RepositoryService) SwitchBranch(repositoryPath string, branch str
 		return "", fmt.Errorf("checkout failed: %s", strings.TrimSpace(string(outputBytes)))
 	}
 	return RunGit(repositoryPath, "branch", "--show-current"), nil
+}
+
+// PullLatest fast-forwards the active branch without creating an implicit merge.
+func (service *RepositoryService) PullLatest(repositoryPath string) (string, error) {
+	if !IsGitRepository(repositoryPath) {
+		return "", errors.New("not a Git repository")
+	}
+	command := exec.Command("git", "pull", "--ff-only")
+	command.Dir = repositoryPath
+	outputBytes, pullError := command.CombinedOutput()
+	output := strings.TrimSpace(string(outputBytes))
+	if pullError != nil {
+		if output == "" {
+			output = pullError.Error()
+		}
+		return "", fmt.Errorf("pull latest failed: %s", output)
+	}
+	if output == "" {
+		output = "Repository is up to date."
+	}
+	return output, nil
 }
 
 // OpenInEditor starts the configured editor without blocking Abduction.

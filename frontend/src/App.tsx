@@ -139,7 +139,7 @@ export default function App() {
       <Titlebar version={bootstrap.version} platform={bootstrap.platform} repos={bootstrap.repos} selectedRepo={selectedRepo} onSelect={setSelectedRepo} onCloned={(repository) => { setSelectedRepo(repository); api.refreshRepos().then((repositories) => setBootstrap({ ...bootstrap, repos: repositories })).catch((reason: unknown) => recordError(String(reason))); }} onCommand={() => setCommandOpen(true)} onShortcuts={() => setShortcutsOpen(true)} onError={recordError} />
       <Rail view={view} onView={setView} errorCount={logs.length} />
       <main className="workspace">
-        <WorkspaceHeader repo={selectedRepo} />
+        <WorkspaceHeader repo={selectedRepo} onError={recordError} />
         {view === "themes" ? <ThemeSwitcher theme={theme} onTheme={updateTheme} /> : view === "logs" ? <LogsView logs={logs} onClear={() => setLogs([])} /> : view === "settings" ? <SettingsView bootstrap={bootstrap} onSaved={(nextBootstrap) => { setBootstrap(nextBootstrap); setTheme(nextBootstrap.config.theme); setSelectedRepo(nextBootstrap.repos.find((repository) => repository.path === selectedRepo?.path) ?? nextBootstrap.repos[0] ?? null); }} onError={recordError} /> : !selectedRepo ? <EmptyWorkspace workspace={bootstrap.config.workspace} onSetup={() => { setEmptySetupDismissed(false); setGuideOpen(true); }} onSettings={() => setView("settings")} /> : view === "code" ?
           <CodeView key={`${selectedRepo.path}-${theme}`} repo={selectedRepo} theme={theme} onError={recordError} /> : view === "history" ?
           <HistoryView key={selectedRepo.path} repo={selectedRepo} onError={recordError} /> : view === "stats" ?
@@ -197,7 +197,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   const [branches, setBranches] = useState<string[]>([]);
   const [switchingBranch, setSwitchingBranch] = useState(false);
   const [cloneURL, setCloneURL] = useState("");
-  const [cloning, setCloning] = useState(false);
+  const [cloning, setCloning] = useState("");
   const [activeRepoIndex, setActiveRepoIndex] = useState(0);
   const [repoSource, setRepoSource] = useState<"yours" | "organisations" | "starred">("yours");
   const [repositorySources, setRepositorySources] = useState<RepositorySources>({ yours: repos, organisations: [], starred: [], error: "" });
@@ -238,8 +238,8 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   // chooseRepository selects a result and immediately returns focus to reading.
   function chooseRepository(repository: Repo) {
     if (!repository.path && repository.githubUrl) {
-      setCloning(true);
-      api.cloneRepository(repository.githubUrl + ".git").then((clonedRepository) => { onCloned(clonedRepository); setPickerOpen(false); setPickerQuery(""); }).catch((reason: unknown) => onError(String(reason))).finally(() => setCloning(false));
+      setCloning(repository.fullName);
+      api.cloneRepository(repository.githubUrl + ".git").then((clonedRepository) => { onCloned(clonedRepository); setPickerOpen(false); setPickerQuery(""); }).catch((reason: unknown) => onError(String(reason))).finally(() => setCloning(""));
       return;
     }
     onSelect(repository); setPickerOpen(false); setPickerQuery("");
@@ -256,8 +256,8 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   function cloneRepository() {
     const repositoryURL = cloneURL.trim();
     if (!repositoryURL || cloning) return;
-    setCloning(true);
-    api.cloneRepository(repositoryURL).then((repository) => { onCloned(repository); setCloneURL(""); setPickerOpen(false); }).catch((reason: unknown) => onError(String(reason))).finally(() => setCloning(false));
+    setCloning(repositoryURL);
+    api.cloneRepository(repositoryURL).then((repository) => { onCloned(repository); setCloneURL(""); setPickerOpen(false); }).catch((reason: unknown) => onError(String(reason))).finally(() => setCloning(""));
   }
 
   function handlePickerKey(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -265,7 +265,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
     if (event.key === "Enter" && filteredRepos[activeRepoIndex]) { event.preventDefault(); chooseRepository(filteredRepos[activeRepoIndex]); }
   }
 
-  return <><header className="titlebar"><BrandIdentity/><div className="top-context"><button className="repo-picker" onClick={() => setPickerOpen(true)}><span>Repository</span><strong>{selectedRepo?.fullName ?? "Select a repository"}</strong><kbd>⌘P</kbd></button><label className="branch-picker"><GitBranch size={15}/><select disabled={!selectedRepo || switchingBranch} value={selectedRepo?.branch ?? ""} onChange={(event) => chooseBranch(event.target.value)} aria-label="Branch">{selectedRepo?.branch && !branches.includes(selectedRepo.branch) ? <option value={selectedRepo.branch}>{selectedRepo.branch}</option> : null}{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select></label></div><div className="titlebar__actions"><button onClick={onCommand} aria-label="Open command palette"><Command size={15}/><kbd>⌘K</kbd></button><button onClick={onShortcuts} aria-label="Show keyboard shortcuts"><Keyboard size={16}/></button><small>{platform} · v{version}</small></div></header>{pickerOpen ? <div className="picker-backdrop" onMouseDown={() => setPickerOpen(false)}><section className="picker" role="dialog" aria-modal="true" aria-label="Open repository" onMouseDown={(event) => event.stopPropagation()}><header><span className="eyebrow">Quick switch</span><h2>Open repository</h2></header><div className="repo-source-tabs">{(["yours", "organisations", "starred"] as const).map((source) => <button key={source} className={repoSource === source ? "repo-source-tab repo-source-tab--active" : "repo-source-tab"} onClick={() => setRepoSource(source)}><span>{source === "yours" ? "Your repos" : source === "organisations" ? "Organisations" : "Starred"}</span><b>{repositorySources[source].length}</b></button>)}</div>{repositorySources.error ? <p className="picker-source-error">{repositorySources.error}</p> : null}<input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} onKeyDown={handlePickerKey} placeholder="Search owner or repository…"/><div className="picker__list" role="listbox">{filteredRepos.map((repository, repositoryIndex) => <button key={repository.fullName} role="option" aria-selected={repositoryIndex === activeRepoIndex} className={repositoryIndex === activeRepoIndex ? "picker__option--active" : ""} onMouseEnter={() => setActiveRepoIndex(repositoryIndex)} onClick={() => chooseRepository(repository)} disabled={cloning}><span className="repo__glyph">{repository.path ? "⌁" : "☁"}</span><span><strong>{repository.name}</strong><small>{repository.owner} · {repository.language || "Unknown"}{repository.description ? ` · ${repository.description}` : ""}</small></span><kbd>{repository.path ? repository.branch || "detached" : "clone"}</kbd></button>)}{!filteredRepos.length ? <p className="picker-empty">No repositories in this source.</p> : null}</div><div className="clone-box"><div><span className="eyebrow">Add to workspace</span><strong>Clone from URL</strong></div><div><input value={cloneURL} onChange={(event) => setCloneURL(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") cloneRepository(); }} placeholder="https://github.com/owner/repository.git"/><button className="primary" disabled={!cloneURL.trim() || cloning} onClick={cloneRepository}>{cloning ? "Cloning…" : "Clone"}</button></div></div><footer><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open or clone</span><span><kbd>esc</kbd> close</span></footer></section></div> : null}</>;
+  return <><header className="titlebar"><BrandIdentity/><div className="top-context"><button className="repo-picker" onClick={() => setPickerOpen(true)}><span>Repository</span><strong>{selectedRepo?.fullName ?? "Select a repository"}</strong><kbd>⌘P</kbd></button><label className="branch-picker"><GitBranch size={15}/><select disabled={!selectedRepo || switchingBranch} value={selectedRepo?.branch ?? ""} onChange={(event) => chooseBranch(event.target.value)} aria-label="Branch">{selectedRepo?.branch && !branches.includes(selectedRepo.branch) ? <option value={selectedRepo.branch}>{selectedRepo.branch}</option> : null}{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select></label></div><div className="titlebar__actions"><button onClick={onCommand} aria-label="Open command palette"><Command size={15}/><kbd>⌘K</kbd></button><button onClick={onShortcuts} aria-label="Show keyboard shortcuts"><Keyboard size={16}/></button><small>{platform} · v{version}</small></div></header>{pickerOpen ? <div className="picker-backdrop" onMouseDown={() => setPickerOpen(false)}><section className="picker" role="dialog" aria-modal="true" aria-label="Open repository" onMouseDown={(event) => event.stopPropagation()}><header><span className="eyebrow">Quick switch</span><h2>Open repository</h2></header><div className="repo-source-tabs">{(["yours", "organisations", "starred"] as const).map((source) => <button key={source} className={repoSource === source ? "repo-source-tab repo-source-tab--active" : "repo-source-tab"} onClick={() => setRepoSource(source)}><span>{source === "yours" ? "On disk" : source === "organisations" ? "Organisations" : "Starred"}</span><b>{repositorySources[source].length}</b></button>)}</div>{repositorySources.error ? <p className="picker-source-error">{repositorySources.error}</p> : null}<input autoFocus value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} onKeyDown={handlePickerKey} placeholder="Search owner or repository…"/><div className="picker__list" role="listbox">{filteredRepos.map((repository, repositoryIndex) => <button key={repository.fullName} role="option" aria-selected={repositoryIndex === activeRepoIndex} className={repositoryIndex === activeRepoIndex ? "picker__option--active" : ""} onMouseEnter={() => setActiveRepoIndex(repositoryIndex)} onClick={() => chooseRepository(repository)} disabled={Boolean(cloning)}><span className="repo__glyph">{repository.path ? "⌁" : "☁"}</span><span><strong>{repository.name}</strong><small>{repository.owner} · {repository.language || "Unknown"}{repository.description ? ` · ${repository.description}` : ""}</small></span><span className={repository.path ? "repo-action repo-action--local" : "repo-action"}>{repository.path ? repository.branch || "On disk" : cloning === repository.fullName ? "Cloning…" : "Clone to workspace"}</span></button>)}{!filteredRepos.length ? <p className="picker-empty">No repositories in this source.</p> : null}</div><div className="clone-box"><div><span className="eyebrow">Add to workspace</span><strong>Clone from URL</strong></div><div><input value={cloneURL} onChange={(event) => setCloneURL(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") cloneRepository(); }} placeholder="https://github.com/owner/repository.git"/><button className="primary" disabled={!cloneURL.trim() || Boolean(cloning)} onClick={cloneRepository}>{cloning === cloneURL.trim() ? "Cloning…" : "Clone"}</button></div></div><footer><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open or clone</span><span><kbd>esc</kbd> close</span></footer></section></div> : null}</>;
 }
 
 // BrandIdentity renders Abduction's compact craft and wordmark.
@@ -301,8 +301,16 @@ function Rail({ view, onView, errorCount }: { view: ViewName; onView: (view: Vie
 }
 
 // WorkspaceHeader shows repository context and global appearance controls.
-function WorkspaceHeader({ repo }: { repo: Repo | null }) {
-  return <header className="workspace__header"><div>{repo ? <><span className="eyebrow">{repo.language}</span><h1>{repo.name}</h1></> : <h1>Choose a repository</h1>}</div><div className="header-actions">{repo ? <button className="ghost" onClick={() => api.openInEditor(repo.path, "")}>Open editor</button> : null}{repo?.githubUrl ? <button className="primary" onClick={() => api.openOnGitHub(repo)}>GitHub ↗</button> : null}</div></header>;
+function WorkspaceHeader({ repo, onError }: { repo: Repo | null; onError: (message: string) => void }) {
+  const [pulling, setPulling] = useState(false);
+  const [pullStatus, setPullStatus] = useState("");
+  function pullLatest() {
+    if (!repo || pulling) return;
+    setPulling(true); setPullStatus("");
+    api.pullLatest(repo.path).then((output) => setPullStatus(output.includes("Already up to date") ? "Up to date" : "Updated")).catch((reason: unknown) => onError(String(reason))).finally(() => setPulling(false));
+  }
+  useEffect(() => { setPullStatus(""); }, [repo?.path]);
+  return <header className="workspace__header"><div>{repo ? <><span className="eyebrow">{repo.language}</span><h1>{repo.name}</h1></> : <h1>Choose a repository</h1>}</div><div className="header-actions">{pullStatus ? <span className="pull-status">{pullStatus}</span> : null}{repo ? <button className="ghost" disabled={pulling} onClick={pullLatest}>{pulling ? "Pulling…" : "Pull latest"}</button> : null}{repo ? <button className="ghost" onClick={() => api.openInEditor(repo.path, "")}>Open editor</button> : null}{repo?.githubUrl ? <button className="primary" onClick={() => api.openOnGitHub(repo)}>GitHub ↗</button> : null}</div></header>;
 }
 
 // CodeView combines a lazy file browser with the rich document reader.

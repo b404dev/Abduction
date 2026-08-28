@@ -21,6 +21,7 @@ interface AbductionBackend {
   OpenURL(address: string): Promise<void>;
   Branches(repositoryPath: string): Promise<string[]>;
   SwitchBranch(repositoryPath: string, branch: string): Promise<string>;
+  PullLatest(repositoryPath: string): Promise<string>;
   OpenInEditor(repositoryPath: string, relativePath: string): Promise<void>;
   OpenRepositoryOnGitHub(repository: Repo): Promise<void>;
   StartAnalysis(repositoryPath: string, provider: string, prompt: string): Promise<string>;
@@ -94,6 +95,7 @@ export const api = {
   openURL: (address: string): Promise<void> => backend().OpenURL(address),
   branches: (repositoryPath: string): Promise<string[]> => cached(cacheKey("branches", repositoryPath), () => backend().Branches(repositoryPath), 15_000),
   switchBranch: (repositoryPath: string, branch: string): Promise<string> => backend().SwitchBranch(repositoryPath, branch).then((resolvedBranch) => { invalidateRepository(repositoryPath); return resolvedBranch; }),
+  pullLatest: (repositoryPath: string): Promise<string> => backend().PullLatest(repositoryPath).then((output) => { invalidateRepository(repositoryPath); queryCache.delete("bootstrap"); return output; }),
   openInEditor: (repositoryPath: string, relativePath: string): Promise<void> => backend().OpenInEditor(repositoryPath, relativePath),
   openOnGitHub: (repository: Repo): Promise<void> => backend().OpenRepositoryOnGitHub(repository),
   startAnalysis: (repositoryPath: string, provider: string, prompt: string): Promise<string> => backend().StartAnalysis(repositoryPath, provider, prompt),

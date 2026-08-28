@@ -63,6 +63,18 @@ func TestFastRepositoryDiscoveryReportsUnreadableWorkspace(testingContext *testi
 	}
 }
 
+// TestFlattenGitHubPages protects complete organisation listings beyond 100 repos.
+func TestFlattenGitHubPages(testingContext *testing.T) {
+	pages := []byte(`[[{"name":"one"}],[{"name":"two"},{"name":"three"}]]`)
+	repositories, flattenError := flattenGitHubPages[githubRepository](pages)
+	if flattenError != nil {
+		testingContext.Fatal(flattenError)
+	}
+	if len(repositories) != 3 || repositories[0].Name != "one" || repositories[2].Name != "three" {
+		testingContext.Fatalf("unexpected paginated repositories: %#v", repositories)
+	}
+}
+
 // TestListDirectorySortsDirectoriesFirst keeps the file browser predictable.
 func TestListDirectorySortsDirectoriesFirst(testingContext *testing.T) {
 	repositoryPath := testingContext.TempDir()
