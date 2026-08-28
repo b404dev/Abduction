@@ -101,9 +101,17 @@ type githubOrganisation struct {
 // loadGitHubPages asks gh to follow every REST page and emits a compatible
 // object stream instead of relying on the newer --slurp option.
 func loadGitHubPages[T any](endpoint string) ([]T, error) {
-	outputBytes, commandError := exec.Command("gh", "api", "--paginate", "--jq", ".[]", endpoint).Output()
+	githubPath, lookupError := ExecutablePath("gh")
+	if lookupError != nil {
+		return nil, errors.New("GitHub CLI was not found (checked PATH, /opt/homebrew/bin, and /usr/local/bin)")
+	}
+	outputBytes, commandError := exec.Command(githubPath, "api", "--paginate", "--jq", ".[]", endpoint).CombinedOutput()
 	if commandError != nil {
-		return nil, commandError
+		message := strings.TrimSpace(string(outputBytes))
+		if message == "" {
+			message = commandError.Error()
+		}
+		return nil, errors.New(message)
 	}
 	return decodeGitHubStream[T](outputBytes)
 }
@@ -129,8 +137,17 @@ func decodeGitHubStream[T any](outputBytes []byte) ([]T, error) {
 func (service *RepositoryService) Sources() RepositorySources {
 	localRepositories := service.List()
 	result := RepositorySources{Yours: localRepositories, Organisations: []Repo{}, Starred: []Repo{}}
-	if _, loginError := exec.Command("gh", "api", "user", "--jq", ".login").Output(); loginError != nil {
-		result.Error = "GitHub sources need an authenticated gh CLI; showing local repositories."
+	githubPath, lookupError := ExecutablePath("gh")
+	if lookupError != nil {
+		result.Error = "GitHub CLI was not found. Install it with brew install gh, then reopen Abduction."
+		return result
+	}
+	if loginBytes, loginError := exec.Command(githubPath, "api", "user", "--jq", ".login").CombinedOutput(); loginError != nil {
+		message := strings.TrimSpace(string(loginBytes))
+		if message == "" {
+			message = "run gh auth login in Terminal"
+		}
+		result.Error = "GitHub authentication failed: " + message
 		return result
 	}
 	localByName := make(map[string]Repo)

@@ -14,6 +14,7 @@ All notable changes to Abduction are documented here. This project follows
 - Loaded every accessible repository from every GitHub organisation, with clear clone-to-workspace actions for remote-only repositories.
 - Added a safe, fast-forward-only Pull latest action for local repositories.
 - Added a prominent Pull latest control, manual refresh, and automatic active-repository refresh when commits or working-tree files change in the background.
+- Resolved Homebrew's GitHub CLI from macOS GUI apps and surfaced remote-source loading/authentication failures in the repository picker.
 
 ## [0.1.2] - 2026-08-28
 

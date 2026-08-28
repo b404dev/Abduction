@@ -2,11 +2,38 @@ package main
 
 import (
 	"context"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
+
+// ExecutablePath resolves tools from both the inherited shell PATH and common
+// GUI-app locations, notably Homebrew on macOS.
+func ExecutablePath(binaryName string) (string, error) {
+	if binaryPath, lookupError := exec.LookPath(binaryName); lookupError == nil {
+		return binaryPath, nil
+	}
+	candidates := []string{
+		filepath.Join("/opt/homebrew/bin", binaryName),
+		filepath.Join("/usr/local/bin", binaryName),
+	}
+	if userHome, homeError := os.UserHomeDir(); homeError == nil {
+		candidates = append(candidates,
+			filepath.Join(userHome, ".local", "bin", binaryName),
+			filepath.Join(userHome, "go", "bin", binaryName),
+			filepath.Join(userHome, ".nix-profile", "bin", binaryName),
+		)
+	}
+	for _, candidate := range candidates {
+		if fileInfo, statError := os.Stat(candidate); statError == nil && !fileInfo.IsDir() && fileInfo.Mode()&0o111 != 0 {
+			return candidate, nil
+		}
+	}
+	return "", exec.ErrNotFound
+}
 
 // DetectTools reports the optional host tools that unlock deeper features.
 func DetectTools() []Tool {
@@ -68,7 +95,7 @@ func detectToolWithTimeout(tool *Tool, timeout time.Duration) {
 	if linter, found := findLinterByName(tool.Name); found {
 		binaryName = linter.executable()
 	}
-	binaryPath, lookupError := exec.LookPath(binaryName)
+	binaryPath, lookupError := ExecutablePath(binaryName)
 	if lookupError != nil {
 		return
 	}
