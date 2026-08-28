@@ -20,6 +20,7 @@ All notable changes to Abduction are documented here. This project follows
 - Kept macOS fullscreen titlebar controls outside draggable hit regions so the repository selector remains clickable.
 - Opened cloud repositories in a read-only GitHub-backed file browser without cloning, with cloning retained as a separate explicit action.
 - Fixed analysis event races and extracted readable assistant prose from current Codex and Claude JSONL event shapes.
+- Cached organisation and starred repository catalogues for 30 minutes instead of reloading them whenever the switcher opens.
 
 ## [0.1.2] - 2026-08-28
 

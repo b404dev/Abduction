@@ -237,7 +237,7 @@ function Titlebar({ version, platform, repos, selectedRepo, onSelect, onCloned, 
   useEffect(() => {
     if (!pickerOpen) return;
     setRepositorySources((current) => ({ ...current, yours: current.yours.length ? current.yours : repos }));
-    setLoadingSources(true);
+    setLoadingSources(repositorySources.organisations.length === 0 && repositorySources.starred.length === 0);
     api.repositorySources().then(setRepositorySources).catch((reason: unknown) => onError(String(reason))).finally(() => setLoadingSources(false));
   }, [pickerOpen, repos, onError]);
 
