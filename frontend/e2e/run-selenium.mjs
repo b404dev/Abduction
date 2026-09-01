@@ -59,6 +59,7 @@ async function run() {
 
       const codeButton = await driver.findElement(By.css("nav[aria-label='Primary navigation'] button[aria-label^='Code']"));
       await codeButton.click();
+      assert.equal((await driver.findElements(By.css(".tree__title small"))).length, 0, "tree title should not show a numeric count");
 
       const search = await driver.findElement(By.css("input[aria-label='Search repository']"));
       await search.sendKeys("read");
