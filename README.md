@@ -52,6 +52,12 @@ make build
 make doctor
 ```
 
+For a browser smoke pass against the mocked frontend harness, run:
+
+```sh
+cd frontend && npm run test:e2e
+```
+
 Abduction uses the first existing workspace among `~/Github`, `~/GitHub`, `~/Projects`, `~/projects`, and `~/code`. Override it with `REAPER_WORKSPACE_PATH=/your/repositories`.
 
 ## Configuration
