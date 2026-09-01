@@ -25,6 +25,19 @@ import (
 )
 
 var ErrNoGitHubRemote = errors.New("repository has no GitHub remote")
+var ErrRemoteFileNotFound = errors.New("remote file not found")
+
+type GitCommandError struct {
+	Arguments []string
+	Output    string
+	Err       error
+}
+
+func (commandError *GitCommandError) Error() string {
+	return fmt.Sprintf("git %s failed: %s: %v", strings.Join(commandError.Arguments, " "), commandError.Output, commandError.Err)
+}
+
+func (commandError *GitCommandError) Unwrap() error { return commandError.Err }
 
 // RepositoryService owns local repository discovery and read-only Git queries.
 type RepositoryService struct {
@@ -62,32 +75,51 @@ func (service *RepositoryService) ListFast() ([]Repo, error) {
 }
 
 // List discovers immediate Git checkouts in the configured workspace.
-func (service *RepositoryService) List() []Repo {
+func (service *RepositoryService) List() ([]Repo, error) {
 	fastRepositories, readError := service.ListFast()
 	if readError != nil {
-		return []Repo{}
+		return nil, readError
 	}
 	repositories := make([]Repo, 0, len(fastRepositories))
 	for _, fastRepository := range fastRepositories {
 		repositoryPath := fastRepository.Path
-		owner, name, githubURL := RemoteIdentity(repositoryPath)
+		owner, name, githubURL, identityError := RemoteIdentity(repositoryPath)
+		if identityError != nil && !errors.Is(identityError, ErrNoGitHubRemote) {
+			return nil, fmt.Errorf("inspect repository %q: %w", repositoryPath, identityError)
+		}
 		if name == "" {
 			name = fastRepository.Name
 		}
 		if owner == "" {
 			owner = "local"
 		}
+		branch, branchError := RunGit(repositoryPath, "branch", "--show-current")
+		if branchError != nil {
+			return nil, fmt.Errorf("inspect branch for %q: %w", repositoryPath, branchError)
+		}
+		updated := ""
+		head, headError := RunGit(repositoryPath, "rev-parse", "--verify", "--quiet", "HEAD")
+		if headError != nil && !isGitExitCode(headError, 1) {
+			return nil, fmt.Errorf("inspect HEAD for %q: %w", repositoryPath, headError)
+		}
+		if head != "" {
+			latestUpdate, updatedError := RunGit(repositoryPath, "log", "-1", "--format=%cI")
+			if updatedError != nil {
+				return nil, fmt.Errorf("inspect latest commit for %q: %w", repositoryPath, updatedError)
+			}
+			updated = latestUpdate
+		}
 		repositories = append(repositories, Repo{
 			Name: name, Owner: owner, FullName: owner + "/" + name,
-			Path: repositoryPath, Branch: RunGit(repositoryPath, "branch", "--show-current"),
-			Updated:  RunGit(repositoryPath, "log", "-1", "--format=%cI"),
+			Path: repositoryPath, Branch: branch,
+			Updated:  updated,
 			Language: DetectRepositoryLanguage(repositoryPath), GitHubURL: githubURL,
 		})
 	}
 	sort.Slice(repositories, func(leftIndex int, rightIndex int) bool {
 		return strings.ToLower(repositories[leftIndex].Name) < strings.ToLower(repositories[rightIndex].Name)
 	})
-	return repositories
+	return repositories, nil
 }
 
 type githubRepository struct {
@@ -147,7 +179,17 @@ func loadGitHubObject[T any](endpoint string) (T, error) {
 	defer cancelRequest()
 	outputBytes, commandError := exec.CommandContext(requestContext, githubPath, "api", endpoint).CombinedOutput()
 	if commandError != nil {
-		return result, fmt.Errorf("GitHub request failed: %s", strings.TrimSpace(string(outputBytes)))
+		if errors.Is(requestContext.Err(), context.DeadlineExceeded) {
+			return result, fmt.Errorf("GitHub request timed out after 15 seconds: %w", requestContext.Err())
+		}
+		message := strings.TrimSpace(string(outputBytes))
+		if message == "" {
+			message = commandError.Error()
+		}
+		if strings.Contains(strings.ToLower(message), "http 404") {
+			return result, fmt.Errorf("%w: %s", ErrRemoteFileNotFound, message)
+		}
+		return result, fmt.Errorf("GitHub request failed: %s: %w", message, commandError)
 	}
 	return result, json.Unmarshal(outputBytes, &result)
 }
@@ -303,7 +345,7 @@ func (service *RepositoryService) RemoteFile(fullName string, relativePath strin
 	if snapshot := service.remoteSnapshot(fullName, branch); snapshot != nil {
 		fileBytes, found := snapshot[strings.Trim(filepath.ToSlash(relativePath), "/")]
 		if !found {
-			return nil, errors.New("remote file was not found in the loaded repository")
+			return nil, fmt.Errorf("%w in the loaded repository", ErrRemoteFileNotFound)
 		}
 		return fileBytes, nil
 	}
@@ -319,6 +361,10 @@ func (service *RepositoryService) RemoteFile(fullName string, relativePath strin
 		return nil, errors.New("GitHub returned an unsupported file encoding")
 	}
 	return base64.StdEncoding.DecodeString(strings.ReplaceAll(content.Content, "\n", ""))
+}
+
+func isRemoteFileNotFound(readError error) bool {
+	return errors.Is(readError, ErrRemoteFileNotFound)
 }
 
 // loadGitHubPages asks gh to follow every REST page and emits a compatible
@@ -480,7 +526,11 @@ func (service *RepositoryService) Clone(repositoryURL string) (Repo, error) {
 	if cloneError != nil {
 		return Repo{}, fmt.Errorf("clone failed: %s", strings.TrimSpace(string(outputBytes)))
 	}
-	for _, repository := range service.List() {
+	repositories, listError := service.List()
+	if listError != nil {
+		return Repo{}, fmt.Errorf("repository cloned but workspace refresh failed: %w", listError)
+	}
+	for _, repository := range repositories {
 		if repository.Path == destinationPath {
 			return repository, nil
 		}
@@ -758,7 +808,10 @@ func (service *RepositoryService) Branches(repositoryPath string) ([]string, err
 	if !IsGitRepository(repositoryPath) {
 		return nil, errors.New("not a Git repository")
 	}
-	rawBranches := RunGit(repositoryPath, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes/origin")
+	rawBranches, branchError := RunGit(repositoryPath, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes/origin")
+	if branchError != nil {
+		return nil, branchError
+	}
 	seenBranches := make(map[string]bool)
 	branches := make([]string, 0)
 	for _, rawBranch := range strings.Split(rawBranches, "\n") {
@@ -798,7 +851,7 @@ func (service *RepositoryService) SwitchBranch(repositoryPath string, branch str
 	if checkoutError != nil {
 		return "", fmt.Errorf("checkout failed: %s", strings.TrimSpace(string(outputBytes)))
 	}
-	return RunGit(repositoryPath, "branch", "--show-current"), nil
+	return RunGit(repositoryPath, "branch", "--show-current")
 }
 
 // PullLatest fast-forwards the active branch without creating an implicit merge.
@@ -834,7 +887,11 @@ func (service *RepositoryService) Fingerprint(repositoryPath string) (string, er
 		return "", statusError
 	}
 	fingerprint := sha256.New()
-	fingerprint.Write([]byte(RunGit(repositoryPath, "rev-parse", "HEAD")))
+	head, headError := RunGit(repositoryPath, "rev-parse", "--verify", "--quiet", "HEAD")
+	if headError != nil && !isGitExitCode(headError, 1) {
+		return "", headError
+	}
+	fingerprint.Write([]byte(head))
 	fingerprint.Write(statusBytes)
 	for _, statusEntry := range strings.Split(string(statusBytes), "\x00") {
 		if len(statusEntry) < 4 {
@@ -889,31 +946,45 @@ func IsGitRepository(repositoryPath string) bool {
 }
 
 // RunGit returns trimmed stdout for a small read-only Git query.
-func RunGit(repositoryPath string, arguments ...string) string {
+func RunGit(repositoryPath string, arguments ...string) (string, error) {
 	command := exec.Command("git", arguments...)
 	command.Dir = repositoryPath
-	outputBytes, commandError := command.Output()
+	outputBytes, commandError := command.CombinedOutput()
 	if commandError != nil {
-		return ""
+		message := strings.TrimSpace(string(outputBytes))
+		if message == "" {
+			message = commandError.Error()
+		}
+		return "", &GitCommandError{Arguments: append([]string(nil), arguments...), Output: message, Err: commandError}
 	}
-	return strings.TrimSpace(string(outputBytes))
+	return strings.TrimSpace(string(outputBytes)), nil
 }
 
 // RemoteIdentity extracts an owner, repository name, and browser URL from origin.
-func RemoteIdentity(repositoryPath string) (string, string, string) {
-	remote := strings.TrimSuffix(RunGit(repositoryPath, "remote", "get-url", "origin"), ".git")
-	if remote == "" {
-		return "", "", ""
+func RemoteIdentity(repositoryPath string) (string, string, string, error) {
+	remoteOutput, remoteError := RunGit(repositoryPath, "remote", "get-url", "origin")
+	if remoteError != nil {
+		var gitError *GitCommandError
+		if errors.As(remoteError, &gitError) && strings.Contains(gitError.Output, "No such remote 'origin'") {
+			return "", "", "", ErrNoGitHubRemote
+		}
+		return "", "", "", remoteError
 	}
+	remote := strings.TrimSuffix(remoteOutput, ".git")
 	normalized := strings.Replace(remote, "git@github.com:", "https://github.com/", 1)
 	if !strings.HasPrefix(normalized, "https://github.com/") {
-		return "", "", ""
+		return "", "", "", ErrNoGitHubRemote
 	}
 	pathParts := strings.Split(strings.TrimPrefix(normalized, "https://github.com/"), "/")
 	if len(pathParts) < 2 {
-		return "", "", ""
+		return "", "", "", ErrNoGitHubRemote
 	}
-	return pathParts[0], pathParts[1], "https://github.com/" + pathParts[0] + "/" + pathParts[1]
+	return pathParts[0], pathParts[1], "https://github.com/" + pathParts[0] + "/" + pathParts[1], nil
+}
+
+func isGitExitCode(commandError error, exitCode int) bool {
+	var exitError *exec.ExitError
+	return errors.As(commandError, &exitError) && exitError.ExitCode() == exitCode
 }
 
 // PlatformName returns a friendly operating-system name for diagnostics.

@@ -67,12 +67,15 @@ func (service *AnalysisService) stream(runtimeContext context.Context, jobID str
 	for outputScanner.Scan() {
 		emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: "output", Text: outputScanner.Text()})
 	}
+	scanError := outputScanner.Err()
 	waitError := command.Wait()
 	service.mutex.Lock()
 	delete(service.processes, jobID)
 	service.mutex.Unlock()
 	eventKind, eventText := "finished", ""
-	if waitError != nil {
+	if scanError != nil {
+		eventKind, eventText = "error", fmt.Sprintf("read analysis output: %v", scanError)
+	} else if waitError != nil {
 		eventKind, eventText = "error", waitError.Error()
 	}
 	emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: eventKind, Text: eventText})

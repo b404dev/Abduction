@@ -3,20 +3,29 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
 // LoadConfig reads user preferences and applies environment overrides.
-func LoadConfig() Config {
+func LoadConfig() (Config, error) {
 	userHome, homeError := os.UserHomeDir()
 	if homeError != nil {
 		userHome = "."
 	}
 	configuration := Config{Workspace: DefaultWorkspace(userHome), Editor: "code", Theme: "reaper-dark", Glow: 1.4, Radius: 16, Glass: 0.82}
 	configurationBytes, readError := os.ReadFile(filepath.Join(ConfigDirectory(), "config.json"))
+	var configurationError error
 	if readError == nil {
-		_ = json.Unmarshal(configurationBytes, &configuration)
+		loadedConfiguration := configuration
+		if decodeError := json.Unmarshal(configurationBytes, &loadedConfiguration); decodeError != nil {
+			configurationError = fmt.Errorf("cannot parse configuration: %w", decodeError)
+		} else {
+			configuration = loadedConfiguration
+		}
+	} else if !errors.Is(readError, os.ErrNotExist) {
+		configurationError = fmt.Errorf("cannot read configuration: %w", readError)
 	}
 	if workspace := os.Getenv("REAPER_WORKSPACE_PATH"); workspace != "" {
 		configuration.Workspace = workspace
@@ -24,7 +33,7 @@ func LoadConfig() Config {
 	if editor := os.Getenv("REAPER_EDITOR"); editor != "" {
 		configuration.Editor = editor
 	}
-	return NormalizeConfig(configuration)
+	return NormalizeConfig(configuration), configurationError
 }
 
 // NormalizeConfig fills missing appearance values and bounds unsafe extremes.

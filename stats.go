@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -24,34 +25,66 @@ func (service *RepositoryService) Stats(repositoryPath string) (RepositoryStats,
 		return RepositoryStats{}, errors.New("not a Git repository")
 	}
 	statistics := RepositoryStats{}
-	var contributorOutput string
-	var branches []string
-	var branchError error
+	type metadataResult struct {
+		kind   string
+		value  string
+		values []string
+		err    error
+	}
+	metadataResults := make(chan metadataResult, 5)
 	var metadataWaitGroup sync.WaitGroup
 	metadataWaitGroup.Add(5)
 	go func() {
 		defer metadataWaitGroup.Done()
-		statistics.Commits = parseGitCount(RunGit(repositoryPath, "rev-list", "--all", "--count"))
+		value, queryError := RunGit(repositoryPath, "rev-list", "--all", "--count")
+		metadataResults <- metadataResult{kind: "commit count", value: value, err: queryError}
 	}()
 	go func() {
 		defer metadataWaitGroup.Done()
-		statistics.FirstCommit = RunGit(repositoryPath, "log", "--all", "--reverse", "--format=%aI", "-1")
+		value, queryError := RunGit(repositoryPath, "log", "--all", "--reverse", "--format=%aI", "-1")
+		metadataResults <- metadataResult{kind: "first commit", value: value, err: queryError}
 	}()
 	go func() {
 		defer metadataWaitGroup.Done()
-		statistics.LastCommit = RunGit(repositoryPath, "log", "--all", "--format=%aI", "-1")
+		value, queryError := RunGit(repositoryPath, "log", "--all", "--format=%aI", "-1")
+		metadataResults <- metadataResult{kind: "last commit", value: value, err: queryError}
 	}()
 	go func() {
 		defer metadataWaitGroup.Done()
-		contributorOutput = RunGit(repositoryPath, "shortlog", "-sne", "--all")
+		value, queryError := RunGit(repositoryPath, "shortlog", "-sne", "--all")
+		metadataResults <- metadataResult{kind: "contributors", value: value, err: queryError}
 	}()
-	go func() { defer metadataWaitGroup.Done(); branches, branchError = service.Branches(repositoryPath) }()
+	go func() {
+		defer metadataWaitGroup.Done()
+		values, queryError := service.Branches(repositoryPath)
+		metadataResults <- metadataResult{kind: "branches", values: values, err: queryError}
+	}()
 	metadataWaitGroup.Wait()
+	close(metadataResults)
+	var contributorOutput string
+	for result := range metadataResults {
+		if result.err != nil {
+			return RepositoryStats{}, fmt.Errorf("query repository %s: %w", result.kind, result.err)
+		}
+		switch result.kind {
+		case "commit count":
+			commitCount, parseError := strconv.Atoi(strings.TrimSpace(result.value))
+			if parseError != nil {
+				return RepositoryStats{}, fmt.Errorf("parse repository commit count %q: %w", result.value, parseError)
+			}
+			statistics.Commits = commitCount
+		case "first commit":
+			statistics.FirstCommit = result.value
+		case "last commit":
+			statistics.LastCommit = result.value
+		case "contributors":
+			contributorOutput = result.value
+		case "branches":
+			statistics.Branches = len(result.values)
+		}
+	}
 	statistics.ContributorsByIdentity = parseContributors(contributorOutput, statistics.Commits)
 	statistics.Contributors = len(statistics.ContributorsByIdentity)
-	if branchError == nil {
-		statistics.Branches = len(branches)
-	}
 	trackedCommand := exec.Command("git", "ls-files", "-z")
 	trackedCommand.Dir = repositoryPath
 	trackedBytes, trackedError := trackedCommand.Output()
@@ -150,13 +183,4 @@ func parseContributors(shortlogOutput string, totalCommits int) []ContributorSta
 		contributors = append(contributors, ContributorStat{Name: name, Email: email, Commits: commitCount, Percent: percentage})
 	}
 	return contributors
-}
-
-// parseGitCount converts a Git count while treating unavailable data as zero.
-func parseGitCount(value string) int {
-	parsedValue, parseError := strconv.Atoi(strings.TrimSpace(value))
-	if parseError != nil {
-		return 0
-	}
-	return parsedValue
 }

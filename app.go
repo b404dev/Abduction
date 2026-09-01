@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ type App struct {
 	analysis      *AnalysisService
 	security      *SecurityService
 	configuration Config
+	configError   error
 	repositories  *memoryCache[[]Repo]
 	tools         *memoryCache[[]Tool]
 	directories   *memoryCache[[]TreeEntry]
@@ -34,13 +36,14 @@ type App struct {
 
 // NewApp builds the desktop bridge with its independent application services.
 func NewApp() *App {
-	configuration := LoadConfig()
+	configuration, configError := LoadConfig()
 	return &App{
 		repository:    NewRepositoryService(configuration),
 		code:          NewCodeService(),
 		analysis:      NewAnalysisService(),
 		security:      NewSecurityService(),
 		configuration: configuration,
+		configError:   configError,
 		repositories:  newMemoryCache[[]Repo](),
 		tools:         newMemoryCache[[]Tool](),
 		directories:   newMemoryCache[[]TreeEntry](),
@@ -109,6 +112,9 @@ func (app *App) Bootstrap() Bootstrap {
 	var repositories []Repo
 	var tools []Tool
 	var bootstrapError string
+	if app.configError != nil {
+		bootstrapError = app.configError.Error()
+	}
 	startupTimer := time.NewTimer(2500 * time.Millisecond)
 	defer startupTimer.Stop()
 	for repositories == nil || tools == nil {
@@ -116,7 +122,10 @@ func (app *App) Bootstrap() Bootstrap {
 		case result := <-repositoryResults:
 			repositories = result.repositories
 			if result.err != nil {
-				bootstrapError = result.err.Error()
+				if bootstrapError != "" {
+					bootstrapError += "; "
+				}
+				bootstrapError += result.err.Error()
 			}
 			if len(repositories) == 0 {
 				select {
@@ -152,6 +161,7 @@ func (app *App) UpdateConfig(configuration Config) (Bootstrap, error) {
 		return Bootstrap{}, saveError
 	}
 	app.configuration = savedConfiguration
+	app.configError = nil
 	app.repository = NewRepositoryService(savedConfiguration)
 	app.clearRepositoryCaches()
 	app.repositories.Clear()
@@ -172,10 +182,9 @@ func (app *App) SelectWorkspace() (string, error) {
 }
 
 // RefreshRepos rescans the configured workspace for Git repositories.
-func (app *App) RefreshRepos() []Repo {
+func (app *App) RefreshRepos() ([]Repo, error) {
 	app.repositories.Clear()
-	repositories, _ := app.repositories.Get("workspace", 30*time.Second, func() ([]Repo, error) { return app.repository.List(), nil })
-	return repositories
+	return app.repositories.Get("workspace", 30*time.Second, app.repository.List)
 }
 
 // RepositorySources returns the authenticated user's grouped local and GitHub repositories.
@@ -252,8 +261,12 @@ func (app *App) ReadRemoteFile(fullName string, relativePath string, branch stri
 
 func (app *App) ReadRemoteOverview(fullName string, branch string, themeName string) (Document, error) {
 	for _, readmeName := range []string{"README.md", "readme.md", "README.markdown", "README"} {
-		if document, readError := app.ReadRemoteFile(fullName, readmeName, branch, themeName); readError == nil {
+		document, readError := app.ReadRemoteFile(fullName, readmeName, branch, themeName)
+		if readError == nil {
 			return document, nil
+		}
+		if !isRemoteFileNotFound(readError) {
+			return Document{}, fmt.Errorf("read remote overview: %w", readError)
 		}
 	}
 	return app.code.RenderSource("README.md", []byte("# No README found\n\nChoose a file from the remote tree."), themeName)

@@ -101,14 +101,24 @@ func (service *SecurityService) stream(runtimeContext context.Context, jobID str
 		lines = append(lines, line)
 		wailsruntime.EventsEmit(runtimeContext, "scan:event", ScanEvent{JobID: jobID, Scanner: scannerName, Kind: "output", Text: line})
 	}
+	scanError := outputScanner.Err()
 	waitError := command.Wait()
 	service.mutex.Lock()
 	delete(service.processes, jobID)
 	service.mutex.Unlock()
-	reportPath := archiveScan(repositoryPath, scannerName, lines)
+	reportPath, archiveError := archiveScan(repositoryPath, scannerName, lines)
 	eventKind, eventText := "finished", ""
-	if waitError != nil {
+	if scanError != nil {
+		eventKind, eventText = "error", fmt.Sprintf("read scanner output: %v", scanError)
+	} else if waitError != nil {
 		eventKind, eventText = "findings", waitError.Error()
+	}
+	if archiveError != nil {
+		if eventText != "" {
+			eventText += "; "
+		}
+		eventKind = "error"
+		eventText += fmt.Sprintf("archive scanner report: %v", archiveError)
 	}
 	wailsruntime.EventsEmit(runtimeContext, "scan:event", ScanEvent{JobID: jobID, Scanner: scannerName, Kind: eventKind, Text: eventText, ReportPath: reportPath})
 }
@@ -135,11 +145,11 @@ func findScanner(scannerName string) (scannerSpec, bool) {
 }
 
 // archiveScan stores scanner output under Abduction's configuration directory.
-func archiveScan(repositoryPath string, scannerName string, lines []string) string {
+func archiveScan(repositoryPath string, scannerName string, lines []string) (string, error) {
 	repositoryName := filepath.Base(repositoryPath)
 	reportDirectory := filepath.Join(ConfigDirectory(), "scans", repositoryName)
 	if makeError := os.MkdirAll(reportDirectory, 0o755); makeError != nil {
-		return ""
+		return "", makeError
 	}
 	reportPath := filepath.Join(reportDirectory, fmt.Sprintf("%s-%s.txt", scannerName, time.Now().Format("20060102-150405")))
 	reportText := ""
@@ -147,7 +157,7 @@ func archiveScan(repositoryPath string, scannerName string, lines []string) stri
 		reportText += line + "\n"
 	}
 	if writeError := os.WriteFile(reportPath, []byte(reportText), 0o600); writeError != nil {
-		return ""
+		return "", writeError
 	}
-	return reportPath
+	return reportPath, nil
 }
