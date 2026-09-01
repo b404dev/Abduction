@@ -146,7 +146,7 @@ body { background: var(--depth-canvas); }
   .header-actions{gap:5px}
   .header-actions select{min-width:88px;max-width:130px}
   .header-actions .editor-action,.header-actions .github-action,.pull-status{display:none}
-  .code-layout{grid-template-columns:minmax(180px,32vw) minmax(0,1fr)}
+  .code-layout{grid-template-columns:minmax(180px,min(var(--tree-pane-width, 300px), 32vw)) minmax(0,1fr)}
   .code-layout--chat{grid-template-columns:minmax(180px,28vw) minmax(0,1fr) minmax(260px,36vw)}
   .document.markdown{padding:28px 30px 70px}
 }

@@ -375,6 +375,9 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   const [findLine, setFindLine] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const [treeVisible, setTreeVisible] = useState(true);
+  const [treePaneWidthIndex, setTreePaneWidthIndex] = useState(1);
+  const treePaneWidths = [260, 320, 380];
+  const treePaneWidth = treePaneWidths[treePaneWidthIndex] ?? treePaneWidths[0];
   const treeRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -456,11 +459,12 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   }
 
   const layoutClass = ["code-layout", chatOpen ? "code-layout--chat" : "", focusMode ? "code-layout--focus" : "", !treeVisible ? "code-layout--tree-hidden" : ""].filter(Boolean).join(" ");
+  const layoutStyle = { ["--tree-pane-width" as string]: `${treePaneWidth}px` } as React.CSSProperties;
   const searchActive = searchQuery.trim().length >= (searchRegex ? 1 : 2);
-  return <section className={layoutClass}>
+  return <section className={layoutClass} style={layoutStyle}>
     <aside ref={treeRef} className="tree" onKeyDown={handleTreeNavigation}>
       <div className="tree-search-panel">
-        <div className="tree__title"><span>Explorer</span><div><small>{searchActive ? searchResults.length : entries.length}</small><button onClick={() => setExpandedPaths(new Set())} disabled={!expandedPaths.size} title="Collapse all folders" aria-label="Collapse all folders">−</button></div></div>
+        <div className="tree__title"><span>Explorer</span><div><small>{searchActive ? searchResults.length : entries.length}</small><button onClick={() => setTreePaneWidthIndex((currentIndex) => (currentIndex + 1) % treePaneWidths.length)} title="Resize tree pane" aria-label="Resize tree pane">↔</button><button onClick={() => setExpandedPaths(new Set())} disabled={!expandedPaths.size} title="Collapse all folders" aria-label="Collapse all folders">−</button></div></div>
         <div className="search-modes">
           <button className={searchMode === "files" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("files")}>Filenames</button>
           <button className={searchMode === "content" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("content")}>In files</button>
