@@ -5,6 +5,12 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-01
+
+### Fixed
+
+- Kept deep repository trees inside the file viewer so nested folders no longer disappear under the tree panel.
+
 ## [0.1.3] - 2026-09-01
 
 ### Fixed
@@ -28,35 +34,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.3...HEAD
-[0.1.3]: https://github.com/b404dev/Abduction/compare/v0.1.2...v0.1.3
-
-## [0.1.2] - 2026-08-28
-
-### Fixed
-
-- Prevented optional CLI version probes or slow repository discovery from blocking the first-boot connection wizard.
-
-## [0.1.1] - 2026-08-27
-
-### Fixed
-
-- Added first-boot workspace setup with a native folder picker and recovery UI for empty workspaces.
-- Restored native macOS close, minimize, and full-screen window controls.
-- Ensured Wails production builds install the frontend build toolchain with npm 11.
-
-## [0.1.0] - 2026-08-27
-
-### Added
-
-- Native repository browsing, file search, Markdown rendering, and source highlighting.
-- Git history, branch switching, repository statistics, and GitHub pull-request views.
-- Read-only Codex and Claude analysis with streaming and cancellation.
-- Allowlisted local security scanning and linting integrations.
-- Linux and macOS configuration, editor launching, themes, and first-run guidance.
-- Linux and macOS installation support, with tagged release artifacts.
-
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/b404dev/Abduction/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/b404dev/Abduction/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/b404dev/Abduction/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/b404dev/Abduction/compare/v0.1.0...v0.1.1
