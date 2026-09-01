@@ -5,6 +5,18 @@ produces Linux AMD64 and macOS universal archives plus SHA-256 checksums. Both
 artifact names match the expectations in `install.sh`. Windows is not a
 supported release target.
 
+## Preferred release flow
+
+This project is usually shipped the same way:
+
+1. Branch from `main`.
+2. Keep the change to one feature or fix.
+3. Verify with real build/test output before claiming success.
+4. Open a PR and let CI go green.
+5. If the user wants a direct release instead of a PR, merge to `main`
+   deliberately, then tag and publish the release.
+6. Only after the release is published, clean up the branch.
+
 ## Prepare a release
 
 1. Update the version fallback in `app.go` and the version in
