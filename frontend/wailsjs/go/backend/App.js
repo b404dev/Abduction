@@ -62,6 +62,10 @@ export function PullLatest(arg1) {
   return window['go']['backend']['App']['PullLatest'](arg1);
 }
 
+export function PullRequestDetail(arg1, arg2) {
+  return window['go']['backend']['App']['PullRequestDetail'](arg1, arg2);
+}
+
 export function PullRequests(arg1) {
   return window['go']['backend']['App']['PullRequests'](arg1);
 }

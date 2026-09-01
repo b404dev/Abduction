@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -10,7 +11,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Commits reads all refs in Git's topological graph order.
@@ -82,6 +85,71 @@ func (service *RepositoryService) PullRequests(repositoryPath string) ([]PullReq
 		pullRequests = append(pullRequests, PullRequest{Number: githubItem.Number, Title: githubItem.Title, Author: githubItem.Author.Login, State: githubItem.State, Draft: githubItem.Draft, Updated: githubItem.Updated, URL: githubItem.URL, HeadBranch: githubItem.HeadBranch, BaseBranch: githubItem.BaseBranch})
 	}
 	return pullRequests, nil
+}
+
+// PullRequestDetail loads one pull request's metadata and unified patch through GitHub CLI.
+func (service *RepositoryService) PullRequestDetail(repositoryPath string, number int) (PullRequestDetail, error) {
+	if !IsGitRepository(repositoryPath) {
+		return PullRequestDetail{}, errors.New("not a Git repository")
+	}
+	if number < 1 {
+		return PullRequestDetail{}, errors.New("pull request number must be positive")
+	}
+	if _, lookupError := exec.LookPath("gh"); lookupError != nil {
+		return PullRequestDetail{}, errors.New("GitHub CLI is not installed")
+	}
+	pullRequestNumber := strconv.Itoa(number)
+	requestContext, cancelRequest := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancelRequest()
+	viewCommand := exec.CommandContext(requestContext, "gh", "pr", "view", pullRequestNumber, "--json", "number,title,author,state,isDraft,updatedAt,url,headRefName,baseRefName,body,additions,deletions,changedFiles,commits,reviewDecision,mergeable,files")
+	viewCommand.Dir = repositoryPath
+	viewBytes, viewError := viewCommand.CombinedOutput()
+	if viewError != nil {
+		return PullRequestDetail{}, fmt.Errorf("GitHub pull request #%d unavailable: %s", number, strings.TrimSpace(string(viewBytes)))
+	}
+	diffCommand := exec.CommandContext(requestContext, "gh", "pr", "diff", pullRequestNumber, "--patch")
+	diffCommand.Dir = repositoryPath
+	diffBytes, diffError := diffCommand.CombinedOutput()
+	if diffError != nil {
+		return PullRequestDetail{}, fmt.Errorf("GitHub pull request #%d diff unavailable: %s", number, strings.TrimSpace(string(diffBytes)))
+	}
+	const maximumDiffSize = 4 * 1024 * 1024
+	if len(diffBytes) > maximumDiffSize {
+		diffBytes = append(diffBytes[:maximumDiffSize], []byte("\n\n[Diff truncated at 4 MiB. Open on GitHub for the complete patch.]\n")...)
+	}
+	return decodePullRequestDetail(viewBytes, string(diffBytes))
+}
+
+// decodePullRequestDetail converts GitHub CLI JSON into the stable frontend contract.
+func decodePullRequestDetail(viewBytes []byte, diff string) (PullRequestDetail, error) {
+	var githubItem struct {
+		Number         int               `json:"number"`
+		Title          string            `json:"title"`
+		State          string            `json:"state"`
+		Draft          bool              `json:"isDraft"`
+		Updated        string            `json:"updatedAt"`
+		URL            string            `json:"url"`
+		HeadBranch     string            `json:"headRefName"`
+		BaseBranch     string            `json:"baseRefName"`
+		Body           string            `json:"body"`
+		Additions      int               `json:"additions"`
+		Deletions      int               `json:"deletions"`
+		ChangedFiles   int               `json:"changedFiles"`
+		Commits        []json.RawMessage `json:"commits"`
+		ReviewDecision string            `json:"reviewDecision"`
+		Mergeable      string            `json:"mergeable"`
+		Files          []PullRequestFile `json:"files"`
+		Author         struct {
+			Login string `json:"login"`
+		} `json:"author"`
+	}
+	if decodeError := json.Unmarshal(viewBytes, &githubItem); decodeError != nil {
+		return PullRequestDetail{}, fmt.Errorf("decode pull request detail: %w", decodeError)
+	}
+	return PullRequestDetail{
+		PullRequest: PullRequest{Number: githubItem.Number, Title: githubItem.Title, Author: githubItem.Author.Login, State: githubItem.State, Draft: githubItem.Draft, Updated: githubItem.Updated, URL: githubItem.URL, HeadBranch: githubItem.HeadBranch, BaseBranch: githubItem.BaseBranch},
+		Body:        githubItem.Body, Additions: githubItem.Additions, Deletions: githubItem.Deletions, ChangedFiles: githubItem.ChangedFiles, Commits: len(githubItem.Commits), ReviewDecision: githubItem.ReviewDecision, Mergeable: githubItem.Mergeable, Files: githubItem.Files, Diff: diff,
+	}, nil
 }
 
 // Branches lists local and remote branches with remote prefixes removed.

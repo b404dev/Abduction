@@ -362,6 +362,87 @@ export namespace backend {
 	        this.baseBranch = source["baseBranch"];
 	    }
 	}
+	export class PullRequestFile {
+	    path: string;
+	    additions: number;
+	    deletions: number;
+
+	    static createFrom(source: any = {}) {
+	        return new PullRequestFile(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.additions = source["additions"];
+	        this.deletions = source["deletions"];
+	    }
+	}
+	export class PullRequestDetail {
+	    number: number;
+	    title: string;
+	    author: string;
+	    state: string;
+	    draft: boolean;
+	    updated: string;
+	    url: string;
+	    headBranch: string;
+	    baseBranch: string;
+	    body: string;
+	    additions: number;
+	    deletions: number;
+	    changedFiles: number;
+	    commits: number;
+	    reviewDecision: string;
+	    mergeable: string;
+	    files: PullRequestFile[];
+	    diff: string;
+
+	    static createFrom(source: any = {}) {
+	        return new PullRequestDetail(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.number = source["number"];
+	        this.title = source["title"];
+	        this.author = source["author"];
+	        this.state = source["state"];
+	        this.draft = source["draft"];
+	        this.updated = source["updated"];
+	        this.url = source["url"];
+	        this.headBranch = source["headBranch"];
+	        this.baseBranch = source["baseBranch"];
+	        this.body = source["body"];
+	        this.additions = source["additions"];
+	        this.deletions = source["deletions"];
+	        this.changedFiles = source["changedFiles"];
+	        this.commits = source["commits"];
+	        this.reviewDecision = source["reviewDecision"];
+	        this.mergeable = source["mergeable"];
+	        this.files = this.convertValues(source["files"], PullRequestFile);
+	        this.diff = source["diff"];
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
 
 	export class RepositorySources {
 	    yours: Repo[];

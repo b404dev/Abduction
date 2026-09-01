@@ -126,6 +126,27 @@ type PullRequest struct {
 	BaseBranch string `json:"baseBranch"`
 }
 
+// PullRequestFile summarizes one file changed by a pull request.
+type PullRequestFile struct {
+	Path      string `json:"path"`
+	Additions int    `json:"additions"`
+	Deletions int    `json:"deletions"`
+}
+
+// PullRequestDetail contains the review metadata and patch shown in drill-down.
+type PullRequestDetail struct {
+	PullRequest
+	Body           string            `json:"body"`
+	Additions      int               `json:"additions"`
+	Deletions      int               `json:"deletions"`
+	ChangedFiles   int               `json:"changedFiles"`
+	Commits        int               `json:"commits"`
+	ReviewDecision string            `json:"reviewDecision"`
+	Mergeable      string            `json:"mergeable"`
+	Files          []PullRequestFile `json:"files"`
+	Diff           string            `json:"diff"`
+}
+
 // Tool describes an optional executable used by Abduction integrations.
 type Tool struct {
 	Name      string           `json:"name"`

@@ -32,6 +32,8 @@ export function PreloadRemoteRepository(arg1:string,arg2:string):Promise<number>
 
 export function PullLatest(arg1:string):Promise<string>;
 
+export function PullRequestDetail(arg1:string,arg2:number):Promise<backend.PullRequestDetail>;
+
 export function PullRequests(arg1:string):Promise<Array<backend.PullRequest>>;
 
 export function ReadFile(arg1:string,arg2:string,arg3:string):Promise<backend.Document>;
