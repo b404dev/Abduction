@@ -5,6 +5,14 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-09-01
+
+### Changed
+
+- Split the Wails bridge into lifecycle, repository, and operational modules with explicit ownership boundaries.
+- Separated repository discovery, search, local Git operations, and remote GitHub access into focused backend files.
+- Reduced the React application root to shared-state orchestration by extracting desktop shell and settings features.
+
 ## [0.1.7] - 2026-09-01
 
 ### Changed
@@ -58,7 +66,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/b404dev/Abduction/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/b404dev/Abduction/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/b404dev/Abduction/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/b404dev/Abduction/compare/v0.1.4...v0.1.5
