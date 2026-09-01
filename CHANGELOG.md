@@ -5,6 +5,19 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-09-01
+
+### Added
+
+- Added pull-request search by author, title, branch, and number.
+- Added in-app pull-request drill-down with review state, mergeability, changed-file metrics, and colour-coded unified diffs.
+- Added contributor search by name or email on the repository statistics page.
+- Added language-composition and repository-activity graphics to the statistics dashboard.
+
+### Security
+
+- Bounded pull-request detail requests with a 45-second timeout and limited rendered diffs to 4 MiB.
+
 ## [0.1.8] - 2026-09-01
 
 ### Changed
@@ -66,7 +79,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/b404dev/Abduction/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/b404dev/Abduction/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/b404dev/Abduction/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/b404dev/Abduction/compare/v0.1.5...v0.1.6
