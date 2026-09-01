@@ -38,11 +38,12 @@ func (service *AnalysisService) Start(runtimeContext context.Context, repository
 	if commandError != nil {
 		return "", commandError
 	}
-	if _, lookupError := exec.LookPath(commandName); lookupError != nil {
-		return "", fmt.Errorf("%s is not installed", commandName)
+	commandPath, lookupError := ExecutablePath(commandName)
+	if lookupError != nil {
+		return "", fmt.Errorf("%s is not installed (checked PATH and common GUI locations)", commandName)
 	}
 	jobID := fmt.Sprintf("analysis-%d", service.sequence.Add(1))
-	command := exec.Command(commandName, commandArguments...)
+	command := exec.Command(commandPath, commandArguments...)
 	command.Dir = repositoryPath
 	outputPipe, pipeError := command.StdoutPipe()
 	if pipeError != nil {
@@ -55,7 +56,7 @@ func (service *AnalysisService) Start(runtimeContext context.Context, repository
 	service.mutex.Lock()
 	service.processes[jobID] = command
 	service.mutex.Unlock()
-	wailsruntime.EventsEmit(runtimeContext, "analysis:event", AnalysisEvent{JobID: jobID, Provider: provider, Kind: "started"})
+	emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: "started"})
 	go service.stream(runtimeContext, jobID, provider, command, bufio.NewScanner(outputPipe))
 	return jobID, nil
 }
@@ -64,7 +65,7 @@ func (service *AnalysisService) Start(runtimeContext context.Context, repository
 func (service *AnalysisService) stream(runtimeContext context.Context, jobID string, provider string, command *exec.Cmd, outputScanner *bufio.Scanner) {
 	outputScanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	for outputScanner.Scan() {
-		wailsruntime.EventsEmit(runtimeContext, "analysis:event", AnalysisEvent{JobID: jobID, Provider: provider, Kind: "output", Text: outputScanner.Text()})
+		emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: "output", Text: outputScanner.Text()})
 	}
 	waitError := command.Wait()
 	service.mutex.Lock()
@@ -74,7 +75,14 @@ func (service *AnalysisService) stream(runtimeContext context.Context, jobID str
 	if waitError != nil {
 		eventKind, eventText = "error", waitError.Error()
 	}
-	wailsruntime.EventsEmit(runtimeContext, "analysis:event", AnalysisEvent{JobID: jobID, Provider: provider, Kind: eventKind, Text: eventText})
+	emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: eventKind, Text: eventText})
+}
+
+func emitAnalysisEvent(runtimeContext context.Context, event AnalysisEvent) {
+	if runtimeContext == nil || runtimeContext.Value("events") == nil {
+		return
+	}
+	wailsruntime.EventsEmit(runtimeContext, "analysis:event", event)
 }
 
 // Cancel terminates one running provider process without affecting other jobs.
