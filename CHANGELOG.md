@@ -5,8 +5,11 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-01
+
 ### Fixed
 
+- Made macOS GUI-launched AI provider calls resolve Codex and Claude through the shared executable lookup.
 - Made `ABDUCTION_BRANCH` explicitly bypass older prebuilt releases and build the requested source branch.
 - Made large workspaces appear immediately before repository metadata enrichment finishes.
 - Surfaced macOS workspace permission/read errors in the connection wizard.
@@ -24,6 +27,9 @@ All notable changes to Abduction are documented here. This project follows
 - Added `C` as a cloud-repository clone shortcut, enabled GitHub-backed remote branch switching, and routed authenticated GitHub clones through `gh repo clone`.
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
+
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/b404dev/Abduction/compare/v0.1.2...v0.1.3
 
 ## [0.1.2] - 2026-08-28
 
@@ -50,7 +56,8 @@ All notable changes to Abduction are documented here. This project follows
 - Linux and macOS configuration, editor launching, themes, and first-run guidance.
 - Linux and macOS installation support, with tagged release artifacts.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/b404dev/Abduction/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/b404dev/Abduction/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/b404dev/Abduction/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/b404dev/Abduction/releases/tag/v0.1.0
