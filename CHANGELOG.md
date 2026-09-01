@@ -5,6 +5,16 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-09-01
+
+### Fixed
+
+- Propagated workspace discovery and Git command failures instead of presenting them as empty repository data.
+- Reported every concurrent repository statistics query failure instead of returning plausible zero values.
+- Surfaced malformed or unreadable configuration files while retaining safe defaults.
+- Preserved GitHub command and timeout diagnostics and distinguished missing remote README files from authentication and API failures.
+- Reported truncated scanner and analysis output streams and failed security report archives as errors.
+
 ## [0.1.5] - 2026-09-01
 
 ### Fixed
@@ -40,7 +50,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/b404dev/Abduction/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/b404dev/Abduction/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/b404dev/Abduction/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/b404dev/Abduction/compare/v0.1.2...v0.1.3
