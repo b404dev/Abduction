@@ -4,6 +4,7 @@ import (
 	"embed"
 	"runtime"
 
+	"github.com/b404dev/Abduction/backend"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -14,7 +15,7 @@ import (
 var assets embed.FS
 
 func main() {
-	application := NewApp()
+	application := backend.NewApp()
 
 	applicationError := wails.Run(&options.App{
 		Title:     "Abduction",
@@ -32,7 +33,7 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 2, G: 3, B: 11, A: 1},
-		OnStartup:        application.startup,
+		OnStartup:        application.Startup,
 		Bind: []interface{}{
 			application,
 		},

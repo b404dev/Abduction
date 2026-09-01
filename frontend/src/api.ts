@@ -40,7 +40,7 @@ interface AbductionBackend {
   RunLinters(repositoryPath: string, relativePath: string, language: string, names: string[]): Promise<LintReport[]>;
 }
 
-declare global { interface Window { go?: { main?: { App?: AbductionBackend } } } }
+declare global { interface Window { go?: { backend?: { App?: AbductionBackend } } } }
 
 type CacheEntry = { value?: unknown; promise?: Promise<unknown>; expiresAt: number };
 const queryCache = new Map<string, CacheEntry>();
@@ -75,7 +75,7 @@ function cacheKey(operation: string, ...parts: string[]) { return `${operation}:
 
 // backend returns the generated Wails bridge or explains why it is unavailable.
 function backend(): AbductionBackend {
-  const applicationBackend = window.go?.main?.App;
+  const applicationBackend = window.go?.backend?.App;
   if (!applicationBackend) throw new Error("The Abduction desktop bridge is unavailable. Run the app through Wails.");
   return applicationBackend;
 }

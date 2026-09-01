@@ -25,15 +25,21 @@ repository · code · GitHub · tools · analysis · security
 
 ## Current modules
 
-- `app.go` — narrow Wails binding surface.
-- `config.go` — configuration and environment overrides.
-- `repository.go` — discovery, safe paths, Git queries, and editor actions.
-- `code.go` — bounded reads, Markdown sanitisation, Chroma, and language detection.
-- `tools.go` — optional host-tool diagnostics.
-- `analysis.go` — read-only Codex and Claude jobs with streamed events.
-- `security.go` — allowlisted scanners, cancellation, and report archiving.
-- `models.go` — frontend wire contract.
-- `frontend/src/App.tsx` — navigation and views.
+- `main.go` — executable entry point and Wails window configuration.
+- `backend/app.go` — narrow Wails binding surface.
+- `backend/config.go` — configuration and environment overrides.
+- `backend/repository.go` — local discovery, safe paths, Git queries, and editor actions.
+- `backend/repository_remote.go` — GitHub discovery, remote browsing, and snapshot loading.
+- `backend/code.go` — bounded reads, Markdown sanitisation, Chroma, and language detection.
+- `backend/tools.go` — optional host-tool diagnostics.
+- `backend/analysis.go` — read-only Codex and Claude jobs with streamed events.
+- `backend/security.go` — allowlisted scanners, cancellation, and report archiving.
+- `backend/models.go` — frontend wire contract.
+- `frontend/src/App.tsx` — application bootstrap and shared navigation state.
+- `frontend/src/features/code/` — repository explorer, document reader, linting, and file-aware chat.
+- `frontend/src/features/repository/` — history, statistics, and pull-request views.
+- `frontend/src/features/operations/` — analysis, security scanning, and host-tool views.
+- `frontend/src/components/` — reusable interface components shared by features.
 - `frontend/src/styles.css` — design tokens, themes, layout, and components.
 - `frontend/src/security.css` — focused code-search, review, and scanner surfaces.
 

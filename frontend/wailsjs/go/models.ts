@@ -1,4 +1,4 @@
-export namespace main {
+export namespace backend {
 
 	export class InstallCommand {
 	    manager: string;
@@ -522,4 +522,3 @@ export namespace main {
 	}
 
 }
-

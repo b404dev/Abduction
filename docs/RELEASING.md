@@ -19,7 +19,7 @@ This project is usually shipped the same way:
 
 ## Prepare a release
 
-1. Update the version fallback in `app.go` and the version in
+1. Update the version fallback in `backend/app.go` and the version in
    `frontend/package.json` and `frontend/package-lock.json`.
 2. Move relevant entries from `Unreleased` into a dated section in
    `CHANGELOG.md` and update its comparison links.

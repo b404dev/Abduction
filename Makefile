@@ -13,7 +13,7 @@ test:
 	go test ./...
 check: test
 	go vet ./...
-	test -z "$$(gofmt -l -- *.go)"
+	test -z "$$(gofmt -l -- *.go backend/*.go)"
 	bash -n install.sh
 doctor:
 	"$(WAILS)" doctor

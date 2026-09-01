@@ -29,7 +29,7 @@ jobs:
       - name: Build
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          "$(go env GOPATH)/bin/wails" build -tags webkit2_41 -ldflags "-X main.version=${VERSION}"
+          "$(go env GOPATH)/bin/wails" build -tags webkit2_41 -ldflags "-X github.com/b404dev/Abduction/backend.version=${VERSION}"
           mkdir staging
           cp build/bin/abduction staging/abduction
           cp build/linux/reaper-512.png staging/abduction.png
@@ -58,7 +58,7 @@ jobs:
       - name: Build
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          "$(go env GOPATH)/bin/wails" build -platform darwin/universal -ldflags "-X main.version=${VERSION}"
+          "$(go env GOPATH)/bin/wails" build -platform darwin/universal -ldflags "-X github.com/b404dev/Abduction/backend.version=${VERSION}"
           APP_PATH="$(find build/bin -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "${APP_PATH}"
           mkdir staging
