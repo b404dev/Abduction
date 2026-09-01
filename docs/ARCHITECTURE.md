@@ -26,9 +26,14 @@ repository · code · GitHub · tools · analysis · security
 ## Current modules
 
 - `main.go` — executable entry point and Wails window configuration.
-- `backend/app.go` — narrow Wails binding surface.
+- `backend/app.go` — application construction, startup, bootstrap, and configuration.
+- `backend/app_repository.go` — repository and document Wails bindings plus cache invalidation.
+- `backend/app_operations.go` — analysis, scanner, and linter Wails bindings.
 - `backend/config.go` — configuration and environment overrides.
-- `backend/repository.go` — local discovery, safe paths, Git queries, and editor actions.
+- `backend/repository.go` — repository service construction and shared errors.
+- `backend/repository_discovery.go` — local discovery, cloning, and directory listing.
+- `backend/repository_search.go` — tracked-content and fuzzy filename search.
+- `backend/repository_git.go` — commits, branches, pulls, fingerprints, safe paths, and editor actions.
 - `backend/repository_remote.go` — GitHub discovery, remote browsing, and snapshot loading.
 - `backend/code.go` — bounded reads, Markdown sanitisation, Chroma, and language detection.
 - `backend/tools.go` — optional host-tool diagnostics.
@@ -39,6 +44,8 @@ repository · code · GitHub · tools · analysis · security
 - `frontend/src/features/code/` — repository explorer, document reader, linting, and file-aware chat.
 - `frontend/src/features/repository/` — history, statistics, and pull-request views.
 - `frontend/src/features/operations/` — analysis, security scanning, and host-tool views.
+- `frontend/src/features/settings/` — themes, diagnostics, configuration, and empty-workspace guidance.
+- `frontend/src/features/shell/` — titlebar, repository picker, rail, and workspace chrome.
 - `frontend/src/components/` — reusable interface components shared by features.
 - `frontend/src/styles.css` — design tokens, themes, layout, and components.
 - `frontend/src/security.css` — focused code-search, review, and scanner surfaces.
