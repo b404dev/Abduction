@@ -5,6 +5,12 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-09-01
+
+### Fixed
+
+- Clarified the tree-pane width control so the resize button is easier to read.
+
 ## [0.1.4] - 2026-09-01
 
 ### Fixed
@@ -34,7 +40,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/b404dev/Abduction/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/b404dev/Abduction/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/b404dev/Abduction/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/b404dev/Abduction/compare/v0.1.1...v0.1.2
