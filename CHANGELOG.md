@@ -5,6 +5,14 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-09-01
+
+### Changed
+
+- Moved the Go application bridge, services, models, and tests into a dedicated `backend` package while retaining a minimal executable entry point.
+- Split the repository reader, repository insights, and operational React screens into focused feature modules instead of one monolithic application file.
+- Regenerated Wails bindings for the backend package and updated release tooling, architecture documentation, and project checks for the new layout.
+
 ## [0.1.6] - 2026-09-01
 
 ### Fixed
@@ -50,7 +58,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/b404dev/Abduction/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/b404dev/Abduction/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/b404dev/Abduction/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/b404dev/Abduction/compare/v0.1.3...v0.1.4

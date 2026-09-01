@@ -12,7 +12,7 @@ import (
 )
 
 // version is overridden from the Git tag in release builds.
-var version = "0.1.6"
+var version = "0.1.7"
 
 // App is the narrow desktop bridge exposed to the web interface.
 type App struct {
