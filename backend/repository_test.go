@@ -246,6 +246,17 @@ func TestGitHubRepositoryNameSupportsHTTPSAndSSH(testingContext *testing.T) {
 	}
 }
 
+func TestDecodePullRequestDetail(testingContext *testing.T) {
+	viewJSON := []byte(`{"number":42,"title":"Improve reviews","author":{"login":"octocat"},"state":"OPEN","isDraft":false,"updatedAt":"2026-09-01T00:00:00Z","url":"https://github.com/acme/repo/pull/42","headRefName":"feature/reviews","baseRefName":"main","body":"Context","additions":18,"deletions":4,"changedFiles":2,"commits":[{},{}],"reviewDecision":"APPROVED","mergeable":"MERGEABLE","files":[{"path":"app.go","additions":10,"deletions":2}]}`)
+	detail, decodeError := decodePullRequestDetail(viewJSON, "diff --git a/app.go b/app.go")
+	if decodeError != nil {
+		testingContext.Fatalf("decode pull request detail: %v", decodeError)
+	}
+	if detail.Number != 42 || detail.Author != "octocat" || detail.Commits != 2 || detail.Files[0].Path != "app.go" || detail.Diff == "" {
+		testingContext.Fatalf("unexpected pull request detail: %#v", detail)
+	}
+}
+
 func TestRegexSearchMatchesContentAndFilenames(testingContext *testing.T) {
 	repositoryPath := testingContext.TempDir()
 	for _, commandArguments := range [][]string{{"init"}, {"config", "user.email", "test@example.com"}, {"config", "user.name", "Test User"}} {

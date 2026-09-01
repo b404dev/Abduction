@@ -95,6 +95,11 @@ func (app *App) PullRequests(repositoryPath string) ([]PullRequest, error) {
 	return app.pullRequests.Get(repositoryPath, 60*time.Second, func() ([]PullRequest, error) { return app.repository.PullRequests(repositoryPath) })
 }
 
+// PullRequestDetail returns metadata and a unified patch for one review item.
+func (app *App) PullRequestDetail(repositoryPath string, number int) (PullRequestDetail, error) {
+	return app.repository.PullRequestDetail(repositoryPath, number)
+}
+
 // OpenURL opens a validated HTTPS address in the host browser.
 func (app *App) OpenURL(address string) error {
 	if !strings.HasPrefix(address, "https://") {

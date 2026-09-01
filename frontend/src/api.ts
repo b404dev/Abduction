@@ -1,4 +1,4 @@
-import type { Bootstrap, Commit, Config, Document, LinterInfo, LintReport, PullRequest, Repo, RepositorySources, RepositoryStats, ScannerInfo, SearchResult, ThemeName, TreeEntry } from "./types";
+import type { Bootstrap, Commit, Config, Document, LinterInfo, LintReport, PullRequest, PullRequestDetail, Repo, RepositorySources, RepositoryStats, ScannerInfo, SearchResult, ThemeName, TreeEntry } from "./types";
 
 interface AbductionBackend {
   Bootstrap(): Promise<Bootstrap>;
@@ -23,6 +23,7 @@ interface AbductionBackend {
   Commits(repositoryPath: string): Promise<Commit[]>;
   RepositoryStats(repositoryPath: string): Promise<RepositoryStats>;
   PullRequests(repositoryPath: string): Promise<PullRequest[]>;
+  PullRequestDetail(repositoryPath: string, number: number): Promise<PullRequestDetail>;
   OpenURL(address: string): Promise<void>;
   Branches(repositoryPath: string): Promise<string[]>;
   SwitchBranch(repositoryPath: string, branch: string): Promise<string>;
@@ -104,6 +105,7 @@ export const api = {
   commits: (repositoryPath: string): Promise<Commit[]> => cached(cacheKey("commits", repositoryPath), () => backend().Commits(repositoryPath), 15_000),
   repositoryStats: (repositoryPath: string): Promise<RepositoryStats> => cached(cacheKey("stats", repositoryPath), () => backend().RepositoryStats(repositoryPath), 60_000),
   pullRequests: (repositoryPath: string): Promise<PullRequest[]> => cached(cacheKey("pull-requests", repositoryPath), () => backend().PullRequests(repositoryPath), 60_000),
+  pullRequestDetail: (repositoryPath: string, number: number): Promise<PullRequestDetail> => cached(cacheKey("pull-request-detail", repositoryPath, String(number)), () => backend().PullRequestDetail(repositoryPath, number), 60_000),
   openURL: (address: string): Promise<void> => backend().OpenURL(address),
   branches: (repositoryPath: string): Promise<string[]> => cached(cacheKey("branches", repositoryPath), () => backend().Branches(repositoryPath), 15_000),
   switchBranch: (repositoryPath: string, branch: string): Promise<string> => backend().SwitchBranch(repositoryPath, branch).then((resolvedBranch) => { invalidateRepository(repositoryPath); return resolvedBranch; }),

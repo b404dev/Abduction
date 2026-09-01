@@ -11,6 +11,8 @@ export interface LanguageStat { name: string; files: number; bytes: number; perc
 export interface ContributorStat { name: string; email: string; commits: number; percent: number }
 export interface RepositoryStats { commits: number; branches: number; contributors: number; files: number; lines: number; bytes: number; firstCommit: string; lastCommit: string; languages: LanguageStat[]; contributorsByIdentity: ContributorStat[] }
 export interface PullRequest { number: number; title: string; author: string; state: string; draft: boolean; updated: string; url: string; headBranch: string; baseBranch: string }
+export interface PullRequestFile { path: string; additions: number; deletions: number }
+export interface PullRequestDetail extends PullRequest { body: string; additions: number; deletions: number; changedFiles: number; commits: number; reviewDecision: string; mergeable: string; files: PullRequestFile[]; diff: string }
 export interface InstallCommand { manager: string; command: string }
 export interface Tool { name: string; version: string; install: string; category: string; languages: string[]; available: boolean; commands: InstallCommand[] }
 export interface Bootstrap { config: Config; repos: Repo[]; tools: Tool[]; platform: string; version: string; error: string }
