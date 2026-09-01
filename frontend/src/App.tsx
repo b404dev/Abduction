@@ -464,7 +464,7 @@ function CodeView({ repo, theme, onError }: { repo: Repo; theme: ThemeName; onEr
   return <section className={layoutClass} style={layoutStyle}>
     <aside ref={treeRef} className="tree" onKeyDown={handleTreeNavigation}>
       <div className="tree-search-panel">
-        <div className="tree__title"><span>Explorer</span><div><small>{searchActive ? searchResults.length : entries.length}</small><button onClick={() => setTreePaneWidthIndex((currentIndex) => (currentIndex + 1) % treePaneWidths.length)} title="Resize tree pane" aria-label="Resize tree pane">↔</button><button onClick={() => setExpandedPaths(new Set())} disabled={!expandedPaths.size} title="Collapse all folders" aria-label="Collapse all folders">−</button></div></div>
+        <div className="tree__title"><span>Explorer</span><div><button onClick={() => setTreePaneWidthIndex((currentIndex) => (currentIndex + 1) % treePaneWidths.length)} title="Resize tree pane" aria-label="Resize tree pane">↔</button><button onClick={() => setExpandedPaths(new Set())} disabled={!expandedPaths.size} title="Collapse all folders" aria-label="Collapse all folders">−</button></div></div>
         <div className="search-modes">
           <button className={searchMode === "files" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("files")}>Filenames</button>
           <button className={searchMode === "content" ? "search-mode search-mode--active" : "search-mode"} onClick={() => setSearchMode("content")}>In files</button>
