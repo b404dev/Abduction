@@ -5,6 +5,21 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-09-01
+
+### Added
+
+- Added confirmed pull-request review actions for comments, approvals, and change requests.
+
+### Fixed
+
+- Kept the pull-request list full width until a review is selected instead of squeezing it into an empty master-detail column.
+- Expanded selected pull requests into a wider responsive master-detail layout with a taller diff reader.
+
+### Security
+
+- Required an explicit in-app confirmation before every GitHub review write and restricted review commands to validated argument vectors.
+
 ## [0.1.9] - 2026-09-01
 
 ### Added
@@ -79,7 +94,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/b404dev/Abduction/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/b404dev/Abduction/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/b404dev/Abduction/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/b404dev/Abduction/compare/v0.1.6...v0.1.7

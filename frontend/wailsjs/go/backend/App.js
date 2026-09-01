@@ -146,6 +146,10 @@ export function StartScan(arg1, arg2) {
   return window['go']['backend']['App']['StartScan'](arg1, arg2);
 }
 
+export function SubmitPullRequestReview(arg1, arg2, arg3, arg4) {
+  return window['go']['backend']['App']['SubmitPullRequestReview'](arg1, arg2, arg3, arg4);
+}
+
 export function SwitchBranch(arg1, arg2) {
   return window['go']['backend']['App']['SwitchBranch'](arg1, arg2);
 }

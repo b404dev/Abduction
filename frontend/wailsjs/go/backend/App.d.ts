@@ -74,6 +74,8 @@ export function StartAnalysis(arg1:string,arg2:string,arg3:string):Promise<strin
 
 export function StartScan(arg1:string,arg2:string):Promise<string>;
 
+export function SubmitPullRequestReview(arg1:string,arg2:number,arg3:string,arg4:string):Promise<void>;
+
 export function SwitchBranch(arg1:string,arg2:string):Promise<string>;
 
 export function UpdateConfig(arg1:backend.Config):Promise<backend.Bootstrap>;

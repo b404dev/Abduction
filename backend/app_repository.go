@@ -100,6 +100,11 @@ func (app *App) PullRequestDetail(repositoryPath string, number int) (PullReques
 	return app.repository.PullRequestDetail(repositoryPath, number)
 }
 
+// SubmitPullRequestReview sends one review after frontend confirmation.
+func (app *App) SubmitPullRequestReview(repositoryPath string, number int, action string, body string) error {
+	return app.repository.SubmitPullRequestReview(repositoryPath, number, action, body)
+}
+
 // OpenURL opens a validated HTTPS address in the host browser.
 func (app *App) OpenURL(address string) error {
 	if !strings.HasPrefix(address, "https://") {

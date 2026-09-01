@@ -24,6 +24,7 @@ interface AbductionBackend {
   RepositoryStats(repositoryPath: string): Promise<RepositoryStats>;
   PullRequests(repositoryPath: string): Promise<PullRequest[]>;
   PullRequestDetail(repositoryPath: string, number: number): Promise<PullRequestDetail>;
+  SubmitPullRequestReview(repositoryPath: string, number: number, action: string, body: string): Promise<void>;
   OpenURL(address: string): Promise<void>;
   Branches(repositoryPath: string): Promise<string[]>;
   SwitchBranch(repositoryPath: string, branch: string): Promise<string>;
@@ -106,6 +107,7 @@ export const api = {
   repositoryStats: (repositoryPath: string): Promise<RepositoryStats> => cached(cacheKey("stats", repositoryPath), () => backend().RepositoryStats(repositoryPath), 60_000),
   pullRequests: (repositoryPath: string): Promise<PullRequest[]> => cached(cacheKey("pull-requests", repositoryPath), () => backend().PullRequests(repositoryPath), 60_000),
   pullRequestDetail: (repositoryPath: string, number: number): Promise<PullRequestDetail> => cached(cacheKey("pull-request-detail", repositoryPath, String(number)), () => backend().PullRequestDetail(repositoryPath, number), 60_000),
+  submitPullRequestReview: (repositoryPath: string, number: number, action: string, body: string): Promise<void> => backend().SubmitPullRequestReview(repositoryPath, number, action, body),
   openURL: (address: string): Promise<void> => backend().OpenURL(address),
   branches: (repositoryPath: string): Promise<string[]> => cached(cacheKey("branches", repositoryPath), () => backend().Branches(repositoryPath), 15_000),
   switchBranch: (repositoryPath: string, branch: string): Promise<string> => backend().SwitchBranch(repositoryPath, branch).then((resolvedBranch) => { invalidateRepository(repositoryPath); return resolvedBranch; }),

@@ -120,6 +120,57 @@ func (service *RepositoryService) PullRequestDetail(repositoryPath string, numbe
 	return decodePullRequestDetail(viewBytes, string(diffBytes))
 }
 
+// SubmitPullRequestReview sends one explicitly confirmed review through GitHub CLI.
+func (service *RepositoryService) SubmitPullRequestReview(repositoryPath string, number int, action string, body string) error {
+	if !IsGitRepository(repositoryPath) {
+		return errors.New("not a Git repository")
+	}
+	if _, lookupError := exec.LookPath("gh"); lookupError != nil {
+		return errors.New("GitHub CLI is not installed")
+	}
+	arguments, argumentError := PullRequestReviewArguments(number, action, body)
+	if argumentError != nil {
+		return argumentError
+	}
+	requestContext, cancelRequest := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelRequest()
+	command := exec.CommandContext(requestContext, "gh", arguments...)
+	command.Dir = repositoryPath
+	outputBytes, commandError := command.CombinedOutput()
+	if commandError != nil {
+		return fmt.Errorf("submit pull request review: %s", strings.TrimSpace(string(outputBytes)))
+	}
+	return nil
+}
+
+// PullRequestReviewArguments validates a review action and builds its argument vector without a shell.
+func PullRequestReviewArguments(number int, action string, body string) ([]string, error) {
+	if number < 1 {
+		return nil, errors.New("pull request number must be positive")
+	}
+	normalizedAction := strings.ToLower(strings.TrimSpace(action))
+	normalizedBody := strings.TrimSpace(body)
+	flag := ""
+	switch normalizedAction {
+	case "comment":
+		flag = "--comment"
+	case "approve":
+		flag = "--approve"
+	case "request-changes":
+		flag = "--request-changes"
+		if normalizedBody == "" {
+			return nil, errors.New("requested changes require an explanation")
+		}
+	default:
+		return nil, errors.New("review action must be comment, approve, or request-changes")
+	}
+	arguments := []string{"pr", "review", strconv.Itoa(number), flag}
+	if normalizedBody != "" {
+		arguments = append(arguments, "--body", normalizedBody)
+	}
+	return arguments, nil
+}
+
 // decodePullRequestDetail converts GitHub CLI JSON into the stable frontend contract.
 func decodePullRequestDetail(viewBytes []byte, diff string) (PullRequestDetail, error) {
 	var githubItem struct {

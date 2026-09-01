@@ -9,6 +9,7 @@ const apiMocks = vi.hoisted(() => ({
   pullRequests: vi.fn(),
   pullRequestDetail: vi.fn(),
   openURL: vi.fn(),
+  submitPullRequestReview: vi.fn(),
 }));
 
 vi.mock("../../api", () => ({ api: apiMocks }));
@@ -22,6 +23,7 @@ describe("ReviewsView", () => {
       { number: 8, title: "Improve stats", author: "bob", state: "OPEN", draft: false, updated: "2026-09-01T00:00:00Z", url: "https://example.test/8", headBranch: "stats", baseBranch: "main" },
     ]);
     apiMocks.pullRequestDetail.mockResolvedValue({ number: 8, title: "Improve stats", author: "bob", state: "OPEN", draft: false, updated: "2026-09-01T00:00:00Z", url: "https://example.test/8", headBranch: "stats", baseBranch: "main", body: "Adds visual summaries.", additions: 20, deletions: 4, changedFiles: 1, commits: 2, reviewDecision: "APPROVED", mergeable: "MERGEABLE", files: [{ path: "stats.go", additions: 20, deletions: 4 }], diff: "diff --git a/stats.go b/stats.go\n+new chart" });
+    apiMocks.submitPullRequestReview.mockResolvedValue(undefined);
 
     render(<ReviewsView repo={repository} onError={vi.fn()}/>);
     await screen.findByText(/#7 Refactor modules/);
@@ -32,5 +34,9 @@ describe("ReviewsView", () => {
     await waitFor(() => expect(apiMocks.pullRequestDetail).toHaveBeenCalledWith(repository.path, 8));
     expect(await screen.findByText("stats.go")).toBeTruthy();
     expect(screen.getByText("+new chart")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(screen.getByRole("dialog", { name: "Confirm pull request review" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Confirm approve" }));
+    await waitFor(() => expect(apiMocks.submitPullRequestReview).toHaveBeenCalledWith(repository.path, 8, "approve", ""));
   });
 });

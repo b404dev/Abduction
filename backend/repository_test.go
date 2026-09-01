@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -254,6 +255,23 @@ func TestDecodePullRequestDetail(testingContext *testing.T) {
 	}
 	if detail.Number != 42 || detail.Author != "octocat" || detail.Commits != 2 || detail.Files[0].Path != "app.go" || detail.Diff == "" {
 		testingContext.Fatalf("unexpected pull request detail: %#v", detail)
+	}
+}
+
+func TestPullRequestReviewArgumentsAreExplicit(testingContext *testing.T) {
+	arguments, argumentError := PullRequestReviewArguments(12, "request-changes", "Please cover the failure path.")
+	if argumentError != nil {
+		testingContext.Fatalf("build review arguments: %v", argumentError)
+	}
+	expected := []string{"pr", "review", "12", "--request-changes", "--body", "Please cover the failure path."}
+	if !reflect.DeepEqual(arguments, expected) {
+		testingContext.Fatalf("unexpected review arguments: %#v", arguments)
+	}
+	if _, missingBodyError := PullRequestReviewArguments(12, "request-changes", ""); missingBodyError == nil {
+		testingContext.Fatal("expected request changes without a body to fail")
+	}
+	if _, unknownActionError := PullRequestReviewArguments(12, "merge", "ship it"); unknownActionError == nil {
+		testingContext.Fatal("expected unknown review action to fail")
 	}
 }
 
