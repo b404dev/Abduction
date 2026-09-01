@@ -356,8 +356,8 @@ body { background:var(--page) }
 .clone-box>div:first-child strong{display:block;font-size:11px;white-space:nowrap}.clone-box>div:last-child{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.clone-box input{min-width:0;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:9px;color:var(--text);background:var(--page);font:9px var(--mono)}.clone-box .primary{padding:8px 12px}
 
 /* Focus Reader overlays all chrome while keeping tree and chat independently optional. */
-.code-layout--focus { position:fixed;inset:10px;z-index:500;height:auto;margin:0;grid-template-columns:300px minmax(0,1fr);border-color:color-mix(in srgb,var(--ambient-primary) 40%,var(--border));box-shadow:0 35px 100px rgba(0,0,0,.65),0 0 calc(70px * var(--glow)) color-mix(in srgb,var(--ambient-primary) 18%,transparent);animation:focus-reader-in 180ms cubic-bezier(.2,.8,.2,1) }
-.code-layout--focus.code-layout--chat{grid-template-columns:300px minmax(0,1fr) minmax(320px,390px)}
+.code-layout--focus { position:fixed;inset:10px;z-index:500;height:auto;margin:0;grid-template-columns:clamp(260px,30vw,380px) minmax(0,1fr);border-color:color-mix(in srgb,var(--ambient-primary) 40%,var(--border));box-shadow:0 35px 100px rgba(0,0,0,.65),0 0 calc(70px * var(--glow)) color-mix(in srgb,var(--ambient-primary) 18%,transparent);animation:focus-reader-in 180ms cubic-bezier(.2,.8,.2,1) }
+.code-layout--focus.code-layout--chat{grid-template-columns:clamp(260px,30vw,380px) minmax(0,1fr) minmax(320px,390px)}
 .code-layout--focus.code-layout--tree-hidden{grid-template-columns:minmax(0,1fr)}
 .code-layout--focus.code-layout--tree-hidden.code-layout--chat{grid-template-columns:minmax(0,1fr) minmax(320px,390px)}
 .code-layout--tree-hidden>.tree{display:none}
