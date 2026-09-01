@@ -1,4 +1,4 @@
-package main
+package backend
 
 // Config contains the small set of user-editable desktop preferences.
 type Config struct {

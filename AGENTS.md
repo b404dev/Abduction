@@ -14,7 +14,7 @@ This repo prefers a simple, repeatable flow for feature and release work.
 
 When the user wants a release instead of a PR, follow the documented release process:
 
-1. Update `app.go`, `frontend/package.json`, and `frontend/package-lock.json` if the project version changed.
+1. Update `backend/app.go`, `frontend/package.json`, and `frontend/package-lock.json` if the project version changed.
 2. Move changelog entries from `Unreleased` into a dated release section.
 3. Run `make check` and `make build`.
 4. Commit the release changes on `main`.

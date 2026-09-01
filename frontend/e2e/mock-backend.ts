@@ -190,5 +190,5 @@ export function installMockRuntime() {
     LogError: () => undefined,
     LogFatal: () => undefined,
   };
-  Object.assign(window, { runtime, go: { main: { App: mockBackend } } });
+  Object.assign(window, { runtime, go: { backend: { App: mockBackend } } });
 }

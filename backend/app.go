@@ -1,4 +1,4 @@
-package main
+package backend
 
 import (
 	"context"
@@ -88,8 +88,8 @@ func (app *App) CancelAnalysis(jobID string) error {
 	return app.analysis.Cancel(jobID)
 }
 
-// startup stores the Wails runtime context needed by native desktop actions.
-func (app *App) startup(runtimeContext context.Context) {
+// Startup stores the Wails runtime context needed by native desktop actions.
+func (app *App) Startup(runtimeContext context.Context) {
 	app.context = runtimeContext
 }
 
