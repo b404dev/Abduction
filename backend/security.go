@@ -64,15 +64,12 @@ func (service *SecurityService) Start(runtimeContext context.Context, repository
 	if !IsGitRepository(repositoryPath) {
 		return "", errors.New("scan requires a local Git repository")
 	}
-	scanner, found := findScanner(scannerName)
-	if !found {
-		return "", errors.New("unknown scanner")
-	}
-	if _, lookupError := exec.LookPath(scanner.name); lookupError != nil {
-		return "", fmt.Errorf("%s is not installed", scanner.name)
+	scanner, binaryPath, err := resolveScanner(scannerName)
+	if err != nil {
+		return "", err
 	}
 	jobID := fmt.Sprintf("scan-%d", service.sequence.Add(1))
-	command := exec.Command(scanner.name, scanner.arguments(repositoryPath)...)
+	command := exec.Command(binaryPath, scanner.arguments(repositoryPath)...)
 	if scanner.workingDirectory {
 		command.Dir = repositoryPath
 	}
@@ -144,7 +141,18 @@ func findScanner(scannerName string) (scannerSpec, bool) {
 	return scannerSpec{}, false
 }
 
-// archiveScan stores scanner output under Abduction's configuration directory.
+func resolveScanner(scannerName string) (scannerSpec, string, error) {
+	scanner, found := findScanner(scannerName)
+	if !found {
+		return scannerSpec{}, "", errors.New("unknown scanner")
+	}
+	binaryPath, lookupError := ExecutablePath(scanner.name)
+	if lookupError != nil {
+		return scannerSpec{}, "", fmt.Errorf("%s is not installed", scanner.name)
+	}
+	return scanner, binaryPath, nil
+}
+
 func archiveScan(repositoryPath string, scannerName string, lines []string) (string, error) {
 	repositoryName := filepath.Base(repositoryPath)
 	reportDirectory := filepath.Join(ConfigDirectory(), "scans", repositoryName)

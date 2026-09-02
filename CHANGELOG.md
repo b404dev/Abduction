@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Made security scan launches use the shared executable lookup and run the resolved binary path so macOS GUI launches can actually start installed scanners.
+
 ## [0.1.11] - 2026-09-02
 
 ### Fixed
