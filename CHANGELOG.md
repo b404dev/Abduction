@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Made Trivy run with a clean Docker config so Docker Desktop credential helpers do not break public database downloads on macOS.
+
 ## [0.1.12] - 2026-09-02
 
 ### Changed

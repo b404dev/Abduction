@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -70,6 +71,13 @@ func (service *SecurityService) Start(runtimeContext context.Context, repository
 	}
 	jobID := fmt.Sprintf("scan-%d", service.sequence.Add(1))
 	command := exec.Command(binaryPath, scanner.arguments(repositoryPath)...)
+	if scanner.name == "trivy" {
+		dockerConfigPath, dockerConfigError := trivyDockerConfigDirectory()
+		if dockerConfigError != nil {
+			return "", dockerConfigError
+		}
+		command.Env = trivyEnvironment(dockerConfigPath)
+	}
 	if scanner.workingDirectory {
 		command.Dir = repositoryPath
 	}
@@ -168,4 +176,30 @@ func archiveScan(repositoryPath string, scannerName string, lines []string) (str
 		return "", writeError
 	}
 	return reportPath, nil
+}
+
+// trivyEnvironment returns a clean environment that avoids Docker Desktop credential helpers.
+func trivyEnvironment(dockerConfigDirectory string) []string {
+	environment := make([]string, 0, len(os.Environ())+1)
+	for _, entry := range os.Environ() {
+		if strings.HasPrefix(entry, "DOCKER_CONFIG=") {
+			continue
+		}
+		environment = append(environment, entry)
+	}
+	environment = append(environment, "DOCKER_CONFIG="+dockerConfigDirectory)
+	return environment
+}
+
+// trivyDockerConfigDirectory creates the isolated Docker config directory used by Trivy.
+func trivyDockerConfigDirectory() (string, error) {
+	configurationDirectory := filepath.Join(ConfigDirectory(), "trivy-docker")
+	if makeError := os.MkdirAll(configurationDirectory, 0o755); makeError != nil {
+		return "", makeError
+	}
+	configPath := filepath.Join(configurationDirectory, "config.json")
+	if writeError := os.WriteFile(configPath, []byte("{}\n"), 0o600); writeError != nil {
+		return "", writeError
+	}
+	return configurationDirectory, nil
 }
