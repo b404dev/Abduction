@@ -53,7 +53,7 @@ func NewSecurityService() *SecurityService {
 func (service *SecurityService) Scanners() []ScannerInfo {
 	result := make([]ScannerInfo, 0, len(scannerRegistry))
 	for _, scanner := range scannerRegistry {
-		_, lookupError := exec.LookPath(scanner.name)
+		_, lookupError := ExecutablePath(scanner.name)
 		result = append(result, ScannerInfo{Name: scanner.name, Available: lookupError == nil, Install: scanner.install, Commands: scanner.commands})
 	}
 	return result
