@@ -28,3 +28,26 @@ func TestScannerDetectionUsesExecutablePathFallbacks(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveScannerUsesExecutablePathFallbacks(t *testing.T) {
+	home := t.TempDir()
+	localBin := filepath.Join(home, ".local", "bin")
+	if err := os.MkdirAll(localBin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	scannerPath := filepath.Join(localBin, "gitleaks")
+	if err := os.WriteFile(scannerPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("HOME", home)
+	t.Setenv("PATH", "")
+
+	_, resolvedPath, err := resolveScanner("gitleaks")
+	if err != nil {
+		t.Fatalf("expected gitleaks to resolve from ~/.local/bin, got error: %v", err)
+	}
+	if resolvedPath != scannerPath {
+		t.Fatalf("expected resolved path %q, got %q", scannerPath, resolvedPath)
+	}
+}

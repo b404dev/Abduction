@@ -5,9 +5,15 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-09-02
+
 ### Changed
 
 - Narrowed the documented support matrix to macOS and Omarchy, and focused the platform guardrails on those two environments.
+
+### Fixed
+
+- Made security scan launches use the shared executable lookup and run the resolved binary path so macOS GUI launches can actually start installed scanners.
 
 ## [0.1.11] - 2026-09-02
 
@@ -104,7 +110,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/b404dev/Abduction/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/b404dev/Abduction/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/b404dev/Abduction/compare/v0.1.9...v0.1.10
 [0.1.9]: https://github.com/b404dev/Abduction/compare/v0.1.8...v0.1.9

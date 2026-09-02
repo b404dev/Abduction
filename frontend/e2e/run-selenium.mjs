@@ -67,6 +67,13 @@ async function run() {
       await driver.findElement(By.xpath("//div[contains(@class,'search-results')]//button[.//strong[text()='README.md']]")) .click();
       await driver.wait(until.elementLocated(By.xpath("//h2[text()='README.md']")), 10_000);
 
+      const securityButton = await driver.findElement(By.css("nav[aria-label='Primary navigation'] button[aria-label^='Security']"));
+      await securityButton.click();
+      const runScan = await driver.wait(until.elementLocated(By.xpath("//button[normalize-space()='Run gitleaks']")), 10_000);
+      await runScan.click();
+      await driver.wait(until.elementLocated(By.xpath("//button[normalize-space()='Cancel scan']")), 10_000);
+      assert.equal(await driver.findElement(By.css(".security-view article pre")).getText(), "Starting gitleaks...");
+
       const themesButton = await driver.findElement(By.css("nav[aria-label='Primary navigation'] button[aria-label^='Themes']"));
       await themesButton.click();
       const lostMary = await driver.findElement(By.xpath("//button[.//strong[text()='Lost Mary']]"));
