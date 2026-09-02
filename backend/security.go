@@ -163,19 +163,8 @@ func resolveScanner(scannerName string) (scannerSpec, string, error) {
 
 func archiveScan(repositoryPath string, scannerName string, lines []string) (string, error) {
 	repositoryName := filepath.Base(repositoryPath)
-	reportDirectory := filepath.Join(ConfigDirectory(), "scans", repositoryName)
-	if makeError := os.MkdirAll(reportDirectory, 0o755); makeError != nil {
-		return "", makeError
-	}
-	reportPath := filepath.Join(reportDirectory, fmt.Sprintf("%s-%s.txt", scannerName, time.Now().Format("20060102-150405")))
-	reportText := ""
-	for _, line := range lines {
-		reportText += line + "\n"
-	}
-	if writeError := os.WriteFile(reportPath, []byte(reportText), 0o600); writeError != nil {
-		return "", writeError
-	}
-	return reportPath, nil
+	reportText := renderMarkdownReport("Security scan report", []reportMetadata{{label: "Repository", value: repositoryName}, {label: "Scanner", value: scannerName}, {label: "Generated", value: time.Now().Format(time.RFC3339)}}, []reportSection{{title: "Scan output", body: strings.Join(lines, "\n")}})
+	return archiveMarkdownReport(filepath.Join(ConfigDirectory(), "scans", repositoryName), scannerName, reportText)
 }
 
 // trivyEnvironment returns a clean environment that avoids Docker Desktop credential helpers.

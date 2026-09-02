@@ -3,6 +3,7 @@ package backend
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -72,6 +73,31 @@ func TestTrivyUsesCleanDockerConfig(t *testing.T) {
 	}
 	if got := trivyEnvironment(dockerConfigDirectory); !containsEnv(got, "DOCKER_CONFIG="+dockerConfigDirectory) {
 		t.Fatalf("expected DOCKER_CONFIG in environment, got %v", got)
+	}
+}
+
+func TestArchiveScanWritesMarkdownReport(t *testing.T) {
+	repositoryPath := filepath.Join(t.TempDir(), "scan-target")
+	if err := os.MkdirAll(repositoryPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	reportPath, err := archiveScan(repositoryPath, "gitleaks", []string{"first line", "second line"})
+	if err != nil {
+		t.Fatalf("expected markdown scan report, got error: %v", err)
+	}
+	if filepath.Ext(reportPath) != ".md" {
+		t.Fatalf("expected markdown report path, got %q", reportPath)
+	}
+	reportBytes, readError := os.ReadFile(reportPath)
+	if readError != nil {
+		t.Fatalf("expected scan report on disk, got error: %v", readError)
+	}
+	reportText := string(reportBytes)
+	for _, expected := range []string{"# Security scan report", "## Scan output", "```text", "first line", "second line"} {
+		if !strings.Contains(reportText, expected) {
+			t.Fatalf("expected scan report to contain %q, got %q", expected, reportText)
+		}
 	}
 }
 

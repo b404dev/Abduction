@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -57,28 +59,39 @@ func (service *AnalysisService) Start(runtimeContext context.Context, repository
 	service.processes[jobID] = command
 	service.mutex.Unlock()
 	emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: "started"})
-	go service.stream(runtimeContext, jobID, provider, command, bufio.NewScanner(outputPipe))
+	go service.stream(runtimeContext, jobID, provider, command, bufio.NewScanner(outputPipe), repositoryPath, prompt)
 	return jobID, nil
 }
 
 // stream forwards process output and always removes the completed job.
-func (service *AnalysisService) stream(runtimeContext context.Context, jobID string, provider string, command *exec.Cmd, outputScanner *bufio.Scanner) {
+func (service *AnalysisService) stream(runtimeContext context.Context, jobID string, provider string, command *exec.Cmd, outputScanner *bufio.Scanner, repositoryPath string, prompt string) {
+	lines := make([]string, 0)
 	outputScanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	for outputScanner.Scan() {
-		emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: "output", Text: outputScanner.Text()})
+		line := outputScanner.Text()
+		lines = append(lines, line)
+		emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: "output", Text: line})
 	}
 	scanError := outputScanner.Err()
 	waitError := command.Wait()
 	service.mutex.Lock()
 	delete(service.processes, jobID)
 	service.mutex.Unlock()
+	reportPath, archiveError := archiveAnalysis(repositoryPath, provider, prompt, lines)
 	eventKind, eventText := "finished", ""
 	if scanError != nil {
 		eventKind, eventText = "error", fmt.Sprintf("read analysis output: %v", scanError)
 	} else if waitError != nil {
 		eventKind, eventText = "error", waitError.Error()
 	}
-	emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: eventKind, Text: eventText})
+	if archiveError != nil {
+		if eventText != "" {
+			eventText += "; "
+		}
+		eventKind = "error"
+		eventText += fmt.Sprintf("archive analysis report: %v", archiveError)
+	}
+	emitAnalysisEvent(runtimeContext, AnalysisEvent{JobID: jobID, Provider: provider, Kind: eventKind, Text: eventText, ReportPath: reportPath})
 }
 
 func emitAnalysisEvent(runtimeContext context.Context, event AnalysisEvent) {
@@ -109,4 +122,11 @@ func AnalysisCommand(provider string, repositoryPath string, prompt string) (str
 	default:
 		return "", nil, fmt.Errorf("unsupported analysis provider %q", provider)
 	}
+}
+
+// archiveAnalysis writes a Markdown report for one completed analysis run.
+func archiveAnalysis(repositoryPath string, provider string, prompt string, lines []string) (string, error) {
+	repositoryName := filepath.Base(repositoryPath)
+	reportText := renderMarkdownReport("Analysis report", []reportMetadata{{label: "Repository", value: repositoryName}, {label: "Provider", value: provider}, {label: "Generated", value: time.Now().Format(time.RFC3339)}}, []reportSection{{title: "Prompt", body: prompt}, {title: "Output", body: strings.Join(lines, "\n")}})
+	return archiveMarkdownReport(filepath.Join(ConfigDirectory(), "analysis", repositoryName), provider, reportText)
 }

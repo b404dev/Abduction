@@ -43,6 +43,7 @@ export function AnalysisView({ repo, tools, onError }: { repo: Repo; tools: Boot
   const [startedAt, setStartedAt] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [result, setResult] = useState("");
+  const [reportPath, setReportPath] = useState("");
   const selectedAnalysis = analysisPresets.find((preset) => preset.name === selectedPreset) ?? analysisPresets[0];
   const providerTool = tools.find((tool) => tool.name === provider);
 
@@ -57,6 +58,7 @@ export function AnalysisView({ repo, tools, onError }: { repo: Repo; tools: Boot
       if (event.kind === "finished" || event.kind === "error") {
         setRunning(false);
         if (event.text) setResult((currentResult) => `${currentResult}${currentResult ? "\n\n" : ""}${event.text}`);
+        if (event.reportPath) setReportPath(event.reportPath);
       }
     });
     return unsubscribe;
@@ -73,6 +75,7 @@ export function AnalysisView({ repo, tools, onError }: { repo: Repo; tools: Boot
     const prompt = (selectedAnalysis.prompt || customPrompt).trim();
     if (!prompt || running) return;
     setResult("");
+    setReportPath("");
     setElapsedSeconds(0);
     setStartedAt(Date.now());
     setRunning(true);
