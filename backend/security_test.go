@@ -51,3 +51,35 @@ func TestResolveScannerUsesExecutablePathFallbacks(t *testing.T) {
 		t.Fatalf("expected resolved path %q, got %q", scannerPath, resolvedPath)
 	}
 }
+
+func TestTrivyUsesCleanDockerConfig(t *testing.T) {
+	xdgConfigHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", xdgConfigHome)
+
+	dockerConfigDirectory, err := trivyDockerConfigDirectory()
+	if err != nil {
+		t.Fatalf("expected trivy docker config directory, got error: %v", err)
+	}
+	if got, want := dockerConfigDirectory, filepath.Join(xdgConfigHome, "reaper", "trivy-docker"); got != want {
+		t.Fatalf("expected docker config directory %q, got %q", want, got)
+	}
+	configBytes, readError := os.ReadFile(filepath.Join(dockerConfigDirectory, "config.json"))
+	if readError != nil {
+		t.Fatalf("expected trivy config.json, got error: %v", readError)
+	}
+	if got := string(configBytes); got != "{}\n" {
+		t.Fatalf("expected empty docker config, got %q", got)
+	}
+	if got := trivyEnvironment(dockerConfigDirectory); !containsEnv(got, "DOCKER_CONFIG="+dockerConfigDirectory) {
+		t.Fatalf("expected DOCKER_CONFIG in environment, got %v", got)
+	}
+}
+
+func containsEnv(environment []string, target string) bool {
+	for _, entry := range environment {
+		if entry == target {
+			return true
+		}
+	}
+	return false
+}

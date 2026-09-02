@@ -5,6 +5,12 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-09-02
+
+### Fixed
+
+- Made Trivy run with a clean Docker config so Docker Desktop credential helpers do not break public database downloads on macOS.
+
 ## [0.1.12] - 2026-09-02
 
 ### Changed
@@ -110,7 +116,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.13...HEAD
+[0.1.13]: https://github.com/b404dev/Abduction/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/b404dev/Abduction/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/b404dev/Abduction/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/b404dev/Abduction/compare/v0.1.9...v0.1.10
