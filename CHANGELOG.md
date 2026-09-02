@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- Narrowed the documented support matrix to macOS and Omarchy, and focused the platform guardrails on those two environments.
+
 ## [0.1.11] - 2026-09-02
 
 ### Fixed

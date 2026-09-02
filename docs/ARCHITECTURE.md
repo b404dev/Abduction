@@ -58,4 +58,4 @@ The Codex provider uses `codex exec --sandbox read-only --json --cd <repository>
 
 ## Platforms
 
-Linux builds use WebKitGTK 4.1 and macOS uses WKWebView. Tagged releases build an Ubuntu AMD64 binary and a macOS universal application bundle in native GitHub-hosted jobs. Windows is not supported. Release artifacts are not currently code-signed or notarized. CSS avoids Chromium-only APIs and respects reduced-motion preferences.
+Omarchy/Linux builds use WebKitGTK 4.1 and macOS uses WKWebView. Tagged releases build an Omarchy/Linux AMD64 binary and a macOS universal application bundle in native GitHub-hosted jobs. Windows is not supported. Release artifacts are not currently code-signed or notarized. CSS avoids Chromium-only APIs and respects reduced-motion preferences.

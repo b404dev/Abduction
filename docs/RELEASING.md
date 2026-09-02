@@ -1,9 +1,9 @@
 # Releasing Abduction
 
 Tagged releases are built and published by GitHub Actions. The release workflow
-produces Linux AMD64 and macOS universal archives plus SHA-256 checksums. Both
-artifact names match the expectations in `install.sh`. Windows is not a
-supported release target.
+produces Omarchy/Linux AMD64 and macOS universal archives plus SHA-256
+checksums. Both artifact names match the expectations in `install.sh`.
+Windows is not a supported release target.
 
 ## Preferred release flow
 
@@ -41,5 +41,5 @@ frontend package version.
 
 ## Current distribution limits
 
-Release artifacts are not code-signed or notarized. The one-line installer
-supports macOS, Ubuntu/Debian, and Arch-based Linux. Windows is not supported.
+Release artifacts are not code-signed or notarized. The one-line installer is
+supported on macOS and Omarchy. Windows is not supported.

@@ -31,4 +31,4 @@ This ledger compares the original application with the Abduction desktop rewrite
 - GitHub organization support uses the authenticated GitHub CLI rather than storing tokens in Abduction.
 - Read operations stay automatic; remote writes and review actions always ask for confirmation.
 - New Go functions use descriptive names, plain-English comments, and no single-letter variables.
-- Platform-specific behavior must remain supported on Arch Linux, Ubuntu, and macOS.
+- Platform-specific behavior must remain supported on Omarchy and macOS.
