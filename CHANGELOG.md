@@ -5,6 +5,8 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.14] - 2026-09-02
+
 ### Added
 
 - Rendered security scan and analysis runs as Markdown reports on disk, with saved copies under the app config directory.
@@ -120,7 +122,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.13...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.14...HEAD
+[0.1.14]: https://github.com/b404dev/Abduction/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/b404dev/Abduction/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/b404dev/Abduction/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/b404dev/Abduction/compare/v0.1.10...v0.1.11
