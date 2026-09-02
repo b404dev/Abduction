@@ -166,10 +166,11 @@ type InstallCommand struct {
 
 // AnalysisEvent is a streamed provider update delivered to the active view.
 type AnalysisEvent struct {
-	JobID    string `json:"jobId"`
-	Provider string `json:"provider"`
-	Kind     string `json:"kind"`
-	Text     string `json:"text"`
+	JobID      string `json:"jobId"`
+	Provider   string `json:"provider"`
+	Kind       string `json:"kind"`
+	Text       string `json:"text"`
+	ReportPath string `json:"reportPath"`
 }
 
 // ScannerInfo describes one supported security scanner and its host status.

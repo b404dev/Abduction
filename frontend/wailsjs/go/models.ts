@@ -1,13 +1,13 @@
 export namespace backend {
-
+	
 	export class InstallCommand {
 	    manager: string;
 	    command: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new InstallCommand(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.manager = source["manager"];
@@ -22,11 +22,11 @@ export namespace backend {
 	    languages: string[];
 	    available: boolean;
 	    commands: InstallCommand[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Tool(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -37,7 +37,7 @@ export namespace backend {
 	        this.available = source["available"];
 	        this.commands = this.convertValues(source["commands"], InstallCommand);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -66,11 +66,11 @@ export namespace backend {
 	    updated: string;
 	    githubUrl: string;
 	    description: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Repo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -91,11 +91,11 @@ export namespace backend {
 	    glow: number;
 	    radius: number;
 	    glass: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.workspace = source["workspace"];
@@ -113,11 +113,11 @@ export namespace backend {
 	    platform: string;
 	    version: string;
 	    error: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Bootstrap(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.config = this.convertValues(source["config"], Config);
@@ -127,7 +127,7 @@ export namespace backend {
 	        this.version = source["version"];
 	        this.error = source["error"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -156,11 +156,11 @@ export namespace backend {
 	    connectors: string[];
 	    refs: string;
 	    parents: string[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Commit(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.hash = source["hash"];
@@ -174,17 +174,17 @@ export namespace backend {
 	        this.parents = source["parents"];
 	    }
 	}
-
+	
 	export class ContributorStat {
 	    name: string;
 	    email: string;
 	    commits: number;
 	    percent: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ContributorStat(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -203,11 +203,11 @@ export namespace backend {
 	    lines: number;
 	    markdown: boolean;
 	    binary: boolean;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new Document(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
@@ -221,17 +221,17 @@ export namespace backend {
 	        this.binary = source["binary"];
 	    }
 	}
-
+	
 	export class LanguageStat {
 	    name: string;
 	    files: number;
 	    bytes: number;
 	    percent: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new LanguageStat(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -247,11 +247,11 @@ export namespace backend {
 	    column: number;
 	    severity: string;
 	    message: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new LintDiagnostic(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.linter = source["linter"];
@@ -267,11 +267,11 @@ export namespace backend {
 	    diagnostics: LintDiagnostic[];
 	    output: string;
 	    error: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new LintReport(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.linter = source["linter"];
@@ -279,7 +279,7 @@ export namespace backend {
 	        this.output = source["output"];
 	        this.error = source["error"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -303,11 +303,11 @@ export namespace backend {
 	    available: boolean;
 	    install: string;
 	    commands: InstallCommand[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new LinterInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -315,7 +315,7 @@ export namespace backend {
 	        this.install = source["install"];
 	        this.commands = this.convertValues(source["commands"], InstallCommand);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -344,11 +344,11 @@ export namespace backend {
 	    url: string;
 	    headBranch: string;
 	    baseBranch: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new PullRequest(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.number = source["number"];
@@ -366,11 +366,11 @@ export namespace backend {
 	    path: string;
 	    additions: number;
 	    deletions: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new PullRequestFile(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
@@ -397,11 +397,11 @@ export namespace backend {
 	    mergeable: string;
 	    files: PullRequestFile[];
 	    diff: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new PullRequestDetail(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.number = source["number"];
@@ -423,7 +423,7 @@ export namespace backend {
 	        this.files = this.convertValues(source["files"], PullRequestFile);
 	        this.diff = source["diff"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -442,18 +442,18 @@ export namespace backend {
 		    return a;
 		}
 	}
-
-
+	
+	
 	export class RepositorySources {
 	    yours: Repo[];
 	    organisations: Repo[];
 	    starred: Repo[];
 	    error: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new RepositorySources(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.yours = this.convertValues(source["yours"], Repo);
@@ -461,7 +461,7 @@ export namespace backend {
 	        this.starred = this.convertValues(source["starred"], Repo);
 	        this.error = source["error"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -491,11 +491,11 @@ export namespace backend {
 	    lastCommit: string;
 	    languages: LanguageStat[];
 	    contributorsByIdentity: ContributorStat[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new RepositoryStats(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.commits = source["commits"];
@@ -509,7 +509,7 @@ export namespace backend {
 	        this.languages = this.convertValues(source["languages"], LanguageStat);
 	        this.contributorsByIdentity = this.convertValues(source["contributorsByIdentity"], ContributorStat);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -533,11 +533,11 @@ export namespace backend {
 	    available: boolean;
 	    install: string;
 	    commands: InstallCommand[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new ScannerInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -545,7 +545,7 @@ export namespace backend {
 	        this.install = source["install"];
 	        this.commands = this.convertValues(source["commands"], InstallCommand);
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -569,11 +569,11 @@ export namespace backend {
 	    line: number;
 	    preview: string;
 	    kind: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new SearchResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
@@ -582,17 +582,17 @@ export namespace backend {
 	        this.kind = source["kind"];
 	    }
 	}
-
+	
 	export class TreeEntry {
 	    name: string;
 	    path: string;
 	    kind: string;
 	    size: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new TreeEntry(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -603,3 +603,4 @@ export namespace backend {
 	}
 
 }
+

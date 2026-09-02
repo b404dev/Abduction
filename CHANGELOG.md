@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Rendered security scan and analysis runs as Markdown reports on disk, with saved copies under the app config directory.
+
 ## [0.1.13] - 2026-09-02
 
 ### Fixed

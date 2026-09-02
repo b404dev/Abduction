@@ -16,7 +16,7 @@ export interface PullRequestDetail extends PullRequest { body: string; additions
 export interface InstallCommand { manager: string; command: string }
 export interface Tool { name: string; version: string; install: string; category: string; languages: string[]; available: boolean; commands: InstallCommand[] }
 export interface Bootstrap { config: Config; repos: Repo[]; tools: Tool[]; platform: string; version: string; error: string }
-export interface AnalysisEvent { jobId: string; provider: string; kind: "started" | "output" | "finished" | "error"; text: string }
+export interface AnalysisEvent { jobId: string; provider: string; kind: "started" | "output" | "finished" | "error"; text: string; reportPath: string }
 export interface ScannerInfo { name: string; available: boolean; install: string; commands: InstallCommand[] }
 export interface ScanEvent { jobId: string; scanner: string; kind: string; text: string; reportPath: string }
 export interface LinterInfo { name: string; available: boolean; install: string; commands: InstallCommand[] }
