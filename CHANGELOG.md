@@ -8,6 +8,8 @@ All notable changes to Abduction are documented here. This project follows
 ### Fixed
 
 - Made Git and GitHub CLI commands (clone, pull latest, branch switching, search, stats, pull requests) use the shared executable lookup so macOS GUI launches can find them in common user and Homebrew locations, matching the earlier fix for security scanners.
+- Made the configured editor resolve through the same executable lookup so Open editor works from a macOS GUI launch.
+- Added `/usr/bin` to the executable lookup's fallback locations, covering Git and the GitHub CLI on Linux and stock macOS installs.
 
 ## [0.1.14] - 2026-09-02
 

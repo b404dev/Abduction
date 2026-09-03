@@ -338,8 +338,12 @@ func (service *RepositoryService) OpenInEditor(repositoryPath string, relativePa
 	if len(editorParts) == 0 {
 		return errors.New("no editor configured")
 	}
+	editorBinary, lookupError := ExecutablePath(editorParts[0])
+	if lookupError != nil {
+		return fmt.Errorf("editor %q not found", editorParts[0])
+	}
 	commandArguments := append(editorParts[1:], targetPath)
-	return exec.Command(editorParts[0], commandArguments...).Start()
+	return exec.Command(editorBinary, commandArguments...).Start()
 }
 
 // SafeRepositoryPath resolves a path and proves that it remains inside its repository.
