@@ -5,6 +5,8 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-09-03
+
 ### Fixed
 
 - Made the Text & UI scale control resize viewport-relative layout (modals, panes, splash) consistently with everything else, instead of leaving it measured against the real, unscaled window.
@@ -142,7 +144,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.16...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.17...HEAD
+[0.1.17]: https://github.com/b404dev/Abduction/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/b404dev/Abduction/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/b404dev/Abduction/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/b404dev/Abduction/compare/v0.1.13...v0.1.14
