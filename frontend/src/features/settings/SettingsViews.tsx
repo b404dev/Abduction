@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ScrollText } from "lucide-react";
 import { api } from "../../api";
 import type { Bootstrap, ThemeName } from "../../types";
+import { updateViewportUnits } from "../../viewport";
 
 export const themes: { name: ThemeName; label: string; palette: string[] }[] = [
   { name: "reaper-dark", label: "Abduction Night", palette: ["#050713", "#315cff", "#19d9ff", "#a449ff"] },
@@ -60,6 +61,7 @@ export function SettingsView({ bootstrap, onSaved, onError }: { bootstrap: Boots
     document.documentElement.style.setProperty("--glass", String(draft.glass));
     document.documentElement.style.setProperty("--glass-opacity", `${Math.round(draft.glass * 100)}%`);
     document.documentElement.style.setProperty("--scale", String(draft.scale));
+    updateViewportUnits();
   }, [draft]);
 
   // saveSettings validates preferences in Go and refreshes repository discovery.

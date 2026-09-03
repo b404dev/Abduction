@@ -9,6 +9,7 @@ import { HistoryView, ReviewsView, StatsView } from "./features/repository/Repos
 import { AnalysisView, SecurityView, ToolsView } from "./features/operations/OperationViews";
 import { EmptyWorkspace, LogsView, SettingsView, ThemeSwitcher, themes, type LogEntry } from "./features/settings/SettingsViews";
 import { Loading, Rail, RemoteRepositoryNotice, Titlebar, WorkspaceHeader, destinations, isEditingTarget } from "./features/shell/Shell";
+import { updateViewportUnits } from "./viewport";
 
 type AppCommand = { id: string; label: string; detail: string; keys: string[]; icon: LucideIcon; run: () => void };
 
@@ -104,6 +105,7 @@ export default function App() {
     document.documentElement.style.setProperty("--glass", String(bootstrap.config.glass));
     document.documentElement.style.setProperty("--glass-opacity", `${Math.round(bootstrap.config.glass * 100)}%`);
     document.documentElement.style.setProperty("--scale", String(bootstrap.config.scale));
+    updateViewportUnits();
   }, [bootstrap]);
 
   // updateTheme applies and persists a theme chosen from the desktop chrome.
