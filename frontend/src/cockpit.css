@@ -35,6 +35,8 @@ body { background: var(--depth-canvas); }
 .titlebar__actions>button { display:flex;align-items:center;gap:7px;height:34px;padding:0 9px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--border));border-radius:8px;color:var(--muted);background:var(--depth-recessed); }
 .titlebar__actions>button:hover { color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 48%,var(--border));transform:translateY(-1px); }
 .titlebar__actions small { margin-left:5px;color:var(--muted);font:9px var(--mono); }
+.git-identity { display:flex;align-items:center;gap:5px;margin-left:2px;color:var(--muted);font:9px var(--mono);white-space:nowrap; }
+.git-identity svg { color:var(--cyan); }
 
 .rail { position:relative;width:70px;margin:0;padding:14px 10px;border:0;border-right:1px solid color-mix(in srgb,var(--accent) 24%,var(--border));border-radius:0;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--surface-2) 96%,var(--page)),color-mix(in srgb,var(--page) 97%,black))!important;box-shadow:12px 0 46px rgba(0,0,0,.32)!important;transition:width 220ms cubic-bezier(.2,.8,.2,1),box-shadow 220ms ease; }
 .rail:hover,.rail:has(.rail__item:focus-visible) { width:204px;align-items:stretch;box-shadow:28px 0 70px rgba(0,0,0,.58),12px 0 50px color-mix(in srgb,var(--accent) 12%,transparent)!important; }
@@ -127,7 +129,7 @@ body { background: var(--depth-canvas); }
 @keyframes command-fade { from { opacity:0 } }
 @keyframes command-rise { from { opacity:0;transform:translateY(-12px) scale(.985) } }
 @keyframes rail-energy { from { top:-18%;height:32% } to { top:68%;height:46% } }
-@media(max-width:900px){.titlebar__actions small,.titlebar__actions>button:first-child kbd{display:none}.shortcut-help>div{grid-template-columns:1fr}}
+@media(max-width:900px){.titlebar__actions small,.git-identity,.titlebar__actions>button:first-child kbd{display:none}.shortcut-help>div{grid-template-columns:1fr}}
 @media(max-width:800px){
   .shell{grid-template:56px minmax(0,1fr) / 54px minmax(0,1fr)}
   .titlebar{grid-template-columns:auto minmax(0,1fr) auto;gap:8px;padding:0 10px}

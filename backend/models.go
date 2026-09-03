@@ -33,6 +33,12 @@ type Repo struct {
 	Description string `json:"description"`
 }
 
+// GitIdentity describes the Git author identity active for a repository.
+type GitIdentity struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 // RepositorySources groups local and GitHub repositories for the picker.
 type RepositorySources struct {
 	Yours         []Repo `json:"yours"`

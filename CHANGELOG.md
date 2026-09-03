@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Showed the active Git author identity (name and email) for the selected repository in the titlebar, so it is clear which account local commits and pushes will use.
+
 ## [0.1.14] - 2026-09-02
 
 ### Added
