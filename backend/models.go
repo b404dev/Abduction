@@ -8,6 +8,7 @@ type Config struct {
 	Glow      float64 `json:"glow"`
 	Radius    int     `json:"radius"`
 	Glass     float64 `json:"glass"`
+	Scale     float64 `json:"scale"`
 }
 
 // Bootstrap contains the initial application state returned in one call.

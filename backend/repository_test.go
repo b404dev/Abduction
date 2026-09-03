@@ -76,6 +76,23 @@ func TestDecodeGitHubStream(testingContext *testing.T) {
 	}
 }
 
+// TestRunGitSurvivesAnEmptyPATH protects macOS GUI launches, whose process
+// PATH excludes Homebrew and other locations a user's shell would normally see.
+func TestRunGitSurvivesAnEmptyPATH(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	for _, commandArguments := range [][]string{{"init"}, {"config", "user.email", "empty-path@example.test"}, {"config", "user.name", "Empty Path"}} {
+		command := exec.Command("git", commandArguments...)
+		command.Dir = repositoryPath
+		if outputBytes, commandError := command.CombinedOutput(); commandError != nil {
+			testingContext.Fatalf("git setup failed: %s", outputBytes)
+		}
+	}
+	testingContext.Setenv("PATH", "")
+	if _, runError := RunGit(repositoryPath, "rev-parse", "--is-inside-work-tree"); runError != nil {
+		testingContext.Fatalf("expected RunGit to resolve git via its fallback locations despite an empty PATH, received: %v", runError)
+	}
+}
+
 // TestRepositoryFingerprintChangesWithWorkingTree protects live UI refreshes.
 func TestRepositoryFingerprintChangesWithWorkingTree(testingContext *testing.T) {
 	repositoryPath := testingContext.TempDir()

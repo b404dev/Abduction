@@ -91,6 +91,7 @@ export namespace backend {
 	    glow: number;
 	    radius: number;
 	    glass: number;
+	    scale: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -104,6 +105,7 @@ export namespace backend {
 	        this.glow = source["glow"];
 	        this.radius = source["radius"];
 	        this.glass = source["glass"];
+	        this.scale = source["scale"];
 	    }
 	}
 	export class Bootstrap {

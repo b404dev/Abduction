@@ -103,6 +103,7 @@ export default function App() {
     document.documentElement.style.setProperty("--radius", `${bootstrap.config.radius}px`);
     document.documentElement.style.setProperty("--glass", String(bootstrap.config.glass));
     document.documentElement.style.setProperty("--glass-opacity", `${Math.round(bootstrap.config.glass * 100)}%`);
+    document.documentElement.style.setProperty("--scale", String(bootstrap.config.scale));
   }, [bootstrap]);
 
   // updateTheme applies and persists a theme chosen from the desktop chrome.

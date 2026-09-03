@@ -7,7 +7,7 @@ All notable changes to Abduction are documented here. This project follows
 
 ### Added
 
-- Showed the active Git author identity (name and email) for the selected repository in the titlebar, so it is clear which account local commits and pushes will use.
+- Added a Text & UI scale control to Settings that resizes the entire desktop chrome, including all text, live in preview.
 
 ## [0.1.14] - 2026-09-02
 
