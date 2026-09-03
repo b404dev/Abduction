@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestSafeRepositoryPathRejectsTraversal protects the desktop filesystem boundary.
@@ -90,6 +91,64 @@ func TestRunGitSurvivesAnEmptyPATH(testingContext *testing.T) {
 	testingContext.Setenv("PATH", "")
 	if _, runError := RunGit(repositoryPath, "rev-parse", "--is-inside-work-tree"); runError != nil {
 		testingContext.Fatalf("expected RunGit to resolve git via its fallback locations despite an empty PATH, received: %v", runError)
+	}
+}
+
+// TestOpenInEditorUsesExecutablePathFallbacks protects macOS GUI launches from
+// silently failing to open an editor installed outside the minimal launch PATH.
+func TestOpenInEditorUsesExecutablePathFallbacks(testingContext *testing.T) {
+	home := testingContext.TempDir()
+	localBin := filepath.Join(home, ".local", "bin")
+	if makeError := os.MkdirAll(localBin, 0o755); makeError != nil {
+		testingContext.Fatal(makeError)
+	}
+	repositoryPath := testingContext.TempDir()
+	markerPath := filepath.Join(repositoryPath, "editor-opened")
+	editorStub := filepath.Join(localBin, "stub-editor")
+	script := "#!/bin/sh\necho \"$@\" > " + markerPath + "\n"
+	if writeError := os.WriteFile(editorStub, []byte(script), 0o755); writeError != nil {
+		testingContext.Fatal(writeError)
+	}
+	testingContext.Setenv("HOME", home)
+	testingContext.Setenv("PATH", "")
+	service := NewRepositoryService(Config{Editor: "stub-editor"})
+	if openError := service.OpenInEditor(repositoryPath, ""); openError != nil {
+		testingContext.Fatalf("expected the editor to resolve via ~/.local/bin despite an empty PATH, received: %v", openError)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if _, statError := os.Stat(markerPath); statError == nil {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	testingContext.Fatal("expected the stub editor to run and record its arguments")
+}
+
+// TestMacEditorLaunchArgumentsResolvesKnownApplications protects editors that
+// were installed without their optional CLI shim on PATH.
+func TestMacEditorLaunchArgumentsResolvesKnownApplications(testingContext *testing.T) {
+	arguments, known := macEditorLaunchArguments([]string{"code"}, "/tmp/example")
+	if !known {
+		testingContext.Fatal("expected \"code\" to resolve to a known macOS application")
+	}
+	if !reflect.DeepEqual(arguments, []string{"-a", "Visual Studio Code", "/tmp/example"}) {
+		testingContext.Fatalf("unexpected open arguments: %#v", arguments)
+	}
+	if _, known := macEditorLaunchArguments([]string{"some-unknown-editor"}, "/tmp/example"); known {
+		testingContext.Fatal("expected an unrecognised editor command to report unknown")
+	}
+}
+
+// TestMacEditorLaunchArgumentsForwardsExtraFlags keeps configured editor
+// flags working when Abduction has to fall back to launching the application.
+func TestMacEditorLaunchArgumentsForwardsExtraFlags(testingContext *testing.T) {
+	arguments, known := macEditorLaunchArguments([]string{"code", "--new-window"}, "/tmp/example")
+	if !known {
+		testingContext.Fatal("expected \"code\" to resolve to a known macOS application")
+	}
+	if !reflect.DeepEqual(arguments, []string{"-a", "Visual Studio Code", "/tmp/example", "--args", "--new-window"}) {
+		testingContext.Fatalf("unexpected open arguments: %#v", arguments)
 	}
 }
 

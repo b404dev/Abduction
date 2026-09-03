@@ -328,6 +328,21 @@ func (service *RepositoryService) Fingerprint(repositoryPath string) (string, er
 	return fmt.Sprintf("%x", fingerprint.Sum(nil)), nil
 }
 
+// macEditorApplications maps common editor CLI commands to the macOS
+// application `open -a` can launch when the CLI shim was never installed
+// into PATH (for example, VS Code's "Shell Command: Install 'code' command"
+// was never run).
+var macEditorApplications = map[string]string{
+	"code":          "Visual Studio Code",
+	"code-insiders": "Visual Studio Code - Insiders",
+	"cursor":        "Cursor",
+	"subl":          "Sublime Text",
+	"zed":           "Zed",
+	"webstorm":      "WebStorm",
+	"idea":          "IntelliJ IDEA",
+	"atom":          "Atom",
+}
+
 // OpenInEditor starts the configured editor without blocking Abduction.
 func (service *RepositoryService) OpenInEditor(repositoryPath string, relativePath string) error {
 	targetPath, pathError := SafeRepositoryPath(repositoryPath, relativePath)
@@ -338,8 +353,31 @@ func (service *RepositoryService) OpenInEditor(repositoryPath string, relativePa
 	if len(editorParts) == 0 {
 		return errors.New("no editor configured")
 	}
-	commandArguments := append(editorParts[1:], targetPath)
-	return exec.Command(editorParts[0], commandArguments...).Start()
+	if editorBinary, lookupError := ExecutablePath(editorParts[0]); lookupError == nil {
+		commandArguments := append(editorParts[1:], targetPath)
+		return exec.Command(editorBinary, commandArguments...).Start()
+	}
+	if runtime.GOOS == "darwin" {
+		if arguments, known := macEditorLaunchArguments(editorParts, targetPath); known {
+			return exec.Command("open", arguments...).Start()
+		}
+	}
+	return fmt.Errorf("editor %q not found", editorParts[0])
+}
+
+// macEditorLaunchArguments builds the `open` argument vector that launches a
+// known editor application directly when its CLI shim is not on PATH.
+func macEditorLaunchArguments(editorParts []string, targetPath string) ([]string, bool) {
+	applicationName, known := macEditorApplications[editorParts[0]]
+	if !known {
+		return nil, false
+	}
+	arguments := []string{"-a", applicationName, targetPath}
+	if len(editorParts) > 1 {
+		arguments = append(arguments, "--args")
+		arguments = append(arguments, editorParts[1:]...)
+	}
+	return arguments, true
 }
 
 // SafeRepositoryPath resolves a path and proves that it remains inside its repository.

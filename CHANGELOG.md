@@ -5,6 +5,11 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Made the Text & UI scale control resize viewport-relative layout (modals, panes, splash) consistently with everything else, instead of leaving it measured against the real, unscaled window.
+- Restored the Open editor executable-path fix that a prior merge silently dropped, and added a macOS fallback that launches the editor's application directly (via `open -a`) when its CLI shim was never added to PATH.
+
 ## [0.1.16] - 2026-09-03
 
 ### Added
