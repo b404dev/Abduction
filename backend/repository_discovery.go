@@ -100,7 +100,11 @@ func (service *RepositoryService) Clone(repositoryURL string) (Repo, error) {
 	if _, statError := os.Stat(destinationPath); !os.IsNotExist(statError) {
 		return Repo{}, errors.New("a workspace folder with this repository name already exists")
 	}
-	command := exec.Command("git", "clone", "--", trimmedURL, destinationPath)
+	gitBinary, gitLookupError := GitExecutable()
+	if gitLookupError != nil {
+		return Repo{}, gitLookupError
+	}
+	command := exec.Command(gitBinary, "clone", "--", trimmedURL, destinationPath)
 	if githubRepositoryName := GitHubRepositoryName(trimmedURL); githubRepositoryName != "" {
 		githubPath, lookupError := ExecutablePath("gh")
 		if lookupError != nil {
