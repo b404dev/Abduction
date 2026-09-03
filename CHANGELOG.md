@@ -5,6 +5,10 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Added
+
+- Added a Text & UI scale control to Settings that resizes the entire desktop chrome, including all text, live in preview.
+
 ## [0.1.14] - 2026-09-02
 
 ### Added
