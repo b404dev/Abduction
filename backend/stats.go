@@ -85,7 +85,11 @@ func (service *RepositoryService) Stats(repositoryPath string) (RepositoryStats,
 	}
 	statistics.ContributorsByIdentity = parseContributors(contributorOutput, statistics.Commits)
 	statistics.Contributors = len(statistics.ContributorsByIdentity)
-	trackedCommand := exec.Command("git", "ls-files", "-z")
+	gitBinary, gitLookupError := GitExecutable()
+	if gitLookupError != nil {
+		return RepositoryStats{}, gitLookupError
+	}
+	trackedCommand := exec.Command(gitBinary, "ls-files", "-z")
 	trackedCommand.Dir = repositoryPath
 	trackedBytes, trackedError := trackedCommand.Output()
 	if trackedError != nil {
