@@ -124,6 +124,48 @@ func TestRepositoryFingerprintChangesWithWorkingTree(testingContext *testing.T) 
 	}
 }
 
+// TestGitIdentityReadsConfiguredAuthor protects the titlebar's git-identity display.
+func TestGitIdentityReadsConfiguredAuthor(testingContext *testing.T) {
+	repositoryPath := testingContext.TempDir()
+	for _, commandArguments := range [][]string{{"init"}, {"config", "user.email", "identity@example.test"}, {"config", "user.name", "Identity Test"}} {
+		command := exec.Command("git", commandArguments...)
+		command.Dir = repositoryPath
+		if outputBytes, commandError := command.CombinedOutput(); commandError != nil {
+			testingContext.Fatalf("git setup failed: %s", outputBytes)
+		}
+	}
+	service := NewRepositoryService(Config{})
+	identity, identityError := service.GitIdentity(repositoryPath)
+	if identityError != nil {
+		testingContext.Fatal(identityError)
+	}
+	if identity.Name != "Identity Test" || identity.Email != "identity@example.test" {
+		testingContext.Fatalf("unexpected git identity: %#v", identity)
+	}
+}
+
+// TestGitIdentityTreatsUnsetKeysAsEmpty keeps a missing identity from
+// surfacing as an error in the titlebar.
+func TestGitIdentityTreatsUnsetKeysAsEmpty(testingContext *testing.T) {
+	home := testingContext.TempDir()
+	testingContext.Setenv("HOME", home)
+	testingContext.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	repositoryPath := testingContext.TempDir()
+	command := exec.Command("git", "init")
+	command.Dir = repositoryPath
+	if outputBytes, commandError := command.CombinedOutput(); commandError != nil {
+		testingContext.Fatalf("git setup failed: %s", outputBytes)
+	}
+	service := NewRepositoryService(Config{})
+	identity, identityError := service.GitIdentity(repositoryPath)
+	if identityError != nil {
+		testingContext.Fatal(identityError)
+	}
+	if identity.Name != "" || identity.Email != "" {
+		testingContext.Fatalf("expected empty identity without any configuration, received: %#v", identity)
+	}
+}
+
 // TestListDirectorySortsDirectoriesFirst keeps the file browser predictable.
 func TestListDirectorySortsDirectoriesFirst(testingContext *testing.T) {
 	repositoryPath := testingContext.TempDir()

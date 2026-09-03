@@ -383,6 +383,30 @@ func RunGit(repositoryPath string, arguments ...string) (string, error) {
 	return strings.TrimSpace(string(outputBytes)), nil
 }
 
+// GitIdentity returns the effective Git author identity for a repository, or
+// the machine-wide identity when repositoryPath is empty.
+func (service *RepositoryService) GitIdentity(repositoryPath string) (GitIdentity, error) {
+	name, nameError := gitConfigValue(repositoryPath, "user.name")
+	if nameError != nil {
+		return GitIdentity{}, nameError
+	}
+	email, emailError := gitConfigValue(repositoryPath, "user.email")
+	if emailError != nil {
+		return GitIdentity{}, emailError
+	}
+	return GitIdentity{Name: name, Email: email}, nil
+}
+
+// gitConfigValue reads one configuration key, treating an unset key as an
+// empty value rather than an error.
+func gitConfigValue(repositoryPath string, key string) (string, error) {
+	value, valueError := RunGit(repositoryPath, "config", "--get", key)
+	if valueError != nil && !isGitExitCode(valueError, 1) {
+		return "", valueError
+	}
+	return value, nil
+}
+
 // RemoteIdentity extracts an owner, repository name, and browser URL from origin.
 func RemoteIdentity(repositoryPath string) (string, string, string, error) {
 	remoteOutput, remoteError := RunGit(repositoryPath, "remote", "get-url", "origin")

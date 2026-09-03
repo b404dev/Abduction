@@ -30,6 +30,10 @@ export function ConfigPath() {
   return window['go']['backend']['App']['ConfigPath']();
 }
 
+export function GitIdentity(arg1) {
+  return window['go']['backend']['App']['GitIdentity'](arg1);
+}
+
 export function Linters(arg1) {
   return window['go']['backend']['App']['Linters'](arg1);
 }
