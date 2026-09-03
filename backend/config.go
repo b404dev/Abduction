@@ -14,7 +14,7 @@ func LoadConfig() (Config, error) {
 	if homeError != nil {
 		userHome = "."
 	}
-	configuration := Config{Workspace: DefaultWorkspace(userHome), Editor: "code", Theme: "reaper-dark", Glow: 1.4, Radius: 16, Glass: 0.82}
+	configuration := Config{Workspace: DefaultWorkspace(userHome), Editor: "code", Theme: "reaper-dark", Glow: 1.4, Radius: 16, Glass: 0.82, Scale: 1}
 	configurationBytes, readError := os.ReadFile(filepath.Join(ConfigDirectory(), "config.json"))
 	var configurationError error
 	if readError == nil {
@@ -55,6 +55,9 @@ func NormalizeConfig(configuration Config) Config {
 	}
 	if configuration.Glass < 0.55 || configuration.Glass > 0.96 {
 		configuration.Glass = 0.82
+	}
+	if configuration.Scale < 0.85 || configuration.Scale > 1.35 {
+		configuration.Scale = 1
 	}
 	return configuration
 }

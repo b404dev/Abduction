@@ -5,9 +5,9 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- Made Git and GitHub CLI commands (clone, pull latest, branch switching, search, stats, pull requests) use the shared executable lookup so macOS GUI launches can find them in common user and Homebrew locations, matching the earlier fix for security scanners.
+- Added a Text & UI scale control to Settings that resizes the entire desktop chrome, including all text, live in preview.
 
 ## [0.1.14] - 2026-09-02
 
