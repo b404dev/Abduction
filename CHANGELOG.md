@@ -5,9 +5,20 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.16] - 2026-09-03
+
 ### Added
 
 - Added a Text & UI scale control to Settings that resizes the entire desktop chrome, including all text, live in preview.
+- Showed the active Git author identity (name and email) for the selected repository in the titlebar, so it is clear which account local commits and pushes will use.
+
+## [0.1.15] - 2026-09-03
+
+### Fixed
+
+- Made Git and GitHub CLI commands (clone, pull latest, branch switching, search, stats, pull requests) use the shared executable lookup so macOS GUI launches can find them in common user and Homebrew locations, matching the earlier fix for security scanners.
+- Made the configured editor resolve through the same executable lookup so Open editor works from a macOS GUI launch.
+- Added `/usr/bin` to the executable lookup's fallback locations, covering Git and the GitHub CLI on Linux and stock macOS installs.
 
 ## [0.1.14] - 2026-09-02
 
@@ -126,7 +137,9 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.14...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.16...HEAD
+[0.1.16]: https://github.com/b404dev/Abduction/compare/v0.1.15...v0.1.16
+[0.1.15]: https://github.com/b404dev/Abduction/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/b404dev/Abduction/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/b404dev/Abduction/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/b404dev/Abduction/compare/v0.1.11...v0.1.12

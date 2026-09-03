@@ -195,20 +195,6 @@ export namespace backend {
 	        this.percent = source["percent"];
 	    }
 	}
-	export class GitIdentity {
-	    name: string;
-	    email: string;
-
-	    static createFrom(source: any = {}) {
-	        return new GitIdentity(source);
-	    }
-
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.email = source["email"];
-	    }
-	}
 	export class Document {
 	    path: string;
 	    name: string;
@@ -235,6 +221,20 @@ export namespace backend {
 	        this.lines = source["lines"];
 	        this.markdown = source["markdown"];
 	        this.binary = source["binary"];
+	    }
+	}
+	export class GitIdentity {
+	    name: string;
+	    email: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GitIdentity(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.email = source["email"];
 	    }
 	}
 	
