@@ -20,6 +20,7 @@ func ExecutablePath(binaryName string) (string, error) {
 	candidates := []string{
 		filepath.Join("/opt/homebrew/bin", binaryName),
 		filepath.Join("/usr/local/bin", binaryName),
+		filepath.Join("/usr/bin", binaryName),
 	}
 	if userHome, homeError := os.UserHomeDir(); homeError == nil {
 		candidates = append(candidates,
