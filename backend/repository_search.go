@@ -35,7 +35,11 @@ func (service *RepositoryService) SearchPattern(repositoryPath string, query str
 		commandArguments = append(commandArguments, "-E")
 	}
 	commandArguments = append(commandArguments, "-e", trimmedQuery, "--")
-	command := exec.Command("git", commandArguments...)
+	gitBinary, lookupError := GitExecutable()
+	if lookupError != nil {
+		return nil, lookupError
+	}
+	command := exec.Command(gitBinary, commandArguments...)
 	command.Dir = repositoryPath
 	outputBytes, commandError := command.Output()
 	if commandError != nil {
@@ -87,7 +91,11 @@ func (service *RepositoryService) SearchFilesPattern(repositoryPath string, quer
 	} else {
 		trimmedQuery = strings.ToLower(trimmedQuery)
 	}
-	command := exec.Command("git", "ls-files", "-z")
+	gitBinary, lookupError := GitExecutable()
+	if lookupError != nil {
+		return nil, lookupError
+	}
+	command := exec.Command(gitBinary, "ls-files", "-z")
 	command.Dir = repositoryPath
 	outputBytes, commandError := command.Output()
 	if commandError != nil {

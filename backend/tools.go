@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,6 +34,15 @@ func ExecutablePath(binaryName string) (string, error) {
 		}
 	}
 	return "", exec.ErrNotFound
+}
+
+// GitExecutable resolves the git binary from PATH or common GUI-launch locations.
+func GitExecutable() (string, error) {
+	binaryPath, lookupError := ExecutablePath("git")
+	if lookupError != nil {
+		return "", errors.New("git executable not found on this machine")
+	}
+	return binaryPath, nil
 }
 
 // DetectTools reports the optional host tools that unlock deeper features.
