@@ -3,8 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { updateViewportUnits } from "./viewport";
 import "./styles.css";
-import "./security.css";
-import "./cockpit.css";
+import "./themes.css";
+import "./splash.css";
 
 const applicationRoot = document.getElementById("root");
 if (!applicationRoot) throw new Error("Abduction could not find its application root");

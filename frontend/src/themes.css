@@ -1,0 +1,483 @@
+/* Every theme owns its palette, atmosphere, code canvas, glass cast, and selection colour in one place. */
+/* The default (Abduction Night / reaper-dark) palette lives on :root in styles.css. */
+:root[data-theme="catppuccin-mocha"] {
+  --page: #11111b;
+  --surface: #181825;
+  --surface-2: #1e1e2e;
+  --surface-3: #313244;
+  --border: rgba(180,190,254,.24);
+  --text: #cdd6f4;
+  --muted: #a6adc8;
+  --accent: #89b4fa;
+  --accent-2: #cba6f7;
+  --cyan: #89dceb;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --red: #f38ba8;
+  --ambient-primary: #89b4fa;
+  --ambient-secondary: #cba6f7;
+  --ambient-cyan: #89dceb;
+  --code-canvas: #0d0d16;
+  --glass-cast: #202035;
+  --shadow-cast: rgba(137, 180, 250, .19);
+  --selection: rgba(203, 166, 247, .3);
+}
+:root[data-theme="catppuccin-macchiato"] {
+  --page: #181926;
+  --surface: #1e2030;
+  --surface-2: #24273a;
+  --surface-3: #363a4f;
+  --border: rgba(183,189,248,.24);
+  --text: #cad3f5;
+  --muted: #a5adcb;
+  --accent: #8aadf4;
+  --accent-2: #c6a0f6;
+  --cyan: #91d7e3;
+  --green: #a6da95;
+  --yellow: #eed49f;
+  --red: #ed8796;
+  --ambient-primary: #8aadf4;
+  --ambient-secondary: #f5bde6;
+  --ambient-cyan: #91d7e3;
+  --code-canvas: #151621;
+  --glass-cast: #282c43;
+  --shadow-cast: rgba(138, 173, 244, .2);
+  --selection: rgba(145, 215, 227, .28);
+}
+:root[data-theme="catppuccin-frappe"] {
+  --page: #232634;
+  --surface: #292c3c;
+  --surface-2: #303446;
+  --surface-3: #414559;
+  --border: rgba(186,187,241,.24);
+  --text: #c6d0f5;
+  --muted: #a5adce;
+  --accent: #8caaee;
+  --accent-2: #ca9ee6;
+  --cyan: #99d1db;
+  --green: #a6d189;
+  --yellow: #e5c890;
+  --red: #e78284;
+  --ambient-primary: #8caaee;
+  --ambient-secondary: #ca9ee6;
+  --ambient-cyan: #99d1db;
+  --code-canvas: #1c1f2b;
+  --glass-cast: #35394d;
+  --shadow-cast: rgba(202, 158, 230, .18);
+  --selection: rgba(140, 170, 238, .3);
+}
+:root[data-theme="catppuccin-latte"] {
+  color-scheme: light;
+  --page: #dce0e8;
+  --surface: #eff1f5;
+  --surface-2: #e6e9ef;
+  --surface-3: #ccd0da;
+  --border: rgba(76,79,105,.3);
+  --text: #303446;
+  --muted: #5c5f77;
+  --accent: #1e66f5;
+  --accent-2: #8839ef;
+  --cyan: #04a5e5;
+  --green: #40a02b;
+  --yellow: #df8e1d;
+  --red: #d20f39;
+  --elevation: 0 24px 70px rgba(76,79,105,.16);
+  --code-canvas: #f8f9fc;
+  --glass-cast: #ffffff;
+  --shadow-cast: rgba(76, 79, 105, .16);
+  --ambient-primary: #1e66f5;
+  --ambient-secondary: #8839ef;
+  --ambient-cyan: #04a5e5;
+  --selection: rgba(30, 102, 245, .2);
+}
+:root[data-theme="rose-pine"] {
+  --page: #e1dbd5;
+  --surface: #ede7e1;
+  --surface-2: #faf4ed;
+  --surface-3: #f2e9e1;
+  --border: rgba(86,148,159,.24);
+  --text: #575279;
+  --muted: #9893a5;
+  --code-canvas: #faf4ed;
+  --glass-cast: #fffaf3;
+  --shadow-cast: rgba(87,82,121,.14);
+  color-scheme: light;
+  --accent: #56949f;
+  --accent-2: #907aa9;
+  --cyan: #d7827e;
+  --green: #286983;
+  --yellow: #ea9d34;
+  --red: #b4637a;
+  --ambient-primary: #56949f;
+  --ambient-secondary: #907aa9;
+  --ambient-cyan: #d7827e;
+  --selection: rgba(215,130,126,.22);
+}
+:root[data-theme="reaper-dark"] {
+  --ambient-primary: #315cff;
+  --ambient-secondary: #a449ff;
+  --ambient-cyan: #19d9ff;
+  --code-canvas: #050713;
+  --glass-cast: #111633;
+  --shadow-cast: rgba(19, 31, 112, .34);
+  --selection: rgba(56, 221, 255, .28);
+}
+:root[data-theme="tokyo-night"] {
+  --page: #0e0e14;
+  --surface: #13141c;
+  --surface-2: #1a1b26;
+  --surface-3: #24283b;
+  --border: rgba(122,162,247,.24);
+  --text: #c0caf5;
+  --muted: #565f89;
+  --accent: #7aa2f7;
+  --accent-2: #bb9af7;
+  --cyan: #0db9d7;
+  --green: #9ece6a;
+  --yellow: #e0af68;
+  --red: #f7768e;
+  --ambient-primary: #7aa2f7;
+  --ambient-secondary: #bb9af7;
+  --ambient-cyan: #0db9d7;
+  --code-canvas: #0e0e14;
+  --glass-cast: #1a1b26;
+  --shadow-cast: rgba(122,162,247,.2);
+  --selection: rgba(122,162,247,.27);
+}
+:root[data-theme="everforest"] {
+  --page: #181d20;
+  --surface: #21272c;
+  --surface-2: #2d353b;
+  --surface-3: #343f44;
+  --border: rgba(127,187,179,.23);
+  --text: #d3c6aa;
+  --muted: #859289;
+  --accent: #7fbbb3;
+  --accent-2: #d699b6;
+  --cyan: #83c092;
+  --green: #a7c080;
+  --yellow: #dbbc7f;
+  --red: #e67e80;
+  --ambient-primary: #7fbbb3;
+  --ambient-secondary: #d699b6;
+  --ambient-cyan: #83c092;
+  --code-canvas: #181d20;
+  --glass-cast: #2d353b;
+  --shadow-cast: rgba(127,187,179,.17);
+  --selection: rgba(167,192,128,.24);
+}
+:root[data-theme="gruvbox"] {
+  --page: #161616;
+  --surface: #1e1e1e;
+  --surface-2: #282828;
+  --surface-3: #3c3836;
+  --border: rgba(216,166,87,.22);
+  --text: #d4be98;
+  --muted: #7c6f64;
+  --accent: #7daea3;
+  --accent-2: #d3869b;
+  --cyan: #89b482;
+  --green: #a9b665;
+  --yellow: #d8a657;
+  --red: #ea6962;
+  --ambient-primary: #d8a657;
+  --ambient-secondary: #d3869b;
+  --ambient-cyan: #89b482;
+  --code-canvas: #161616;
+  --glass-cast: #282828;
+  --shadow-cast: rgba(216,166,87,.15);
+  --selection: rgba(216,166,87,.24);
+}
+:root[data-theme="kanagawa"] {
+  --page: #111116;
+  --surface: #17171e;
+  --surface-2: #1f1f28;
+  --surface-3: #223249;
+  --border: rgba(126,156,216,.22);
+  --text: #dcd7ba;
+  --muted: #727169;
+  --accent: #7e9cd8;
+  --accent-2: #957fb8;
+  --cyan: #7aa89f;
+  --green: #98bb6c;
+  --yellow: #e6c384;
+  --red: #e82424;
+  --ambient-primary: #7e9cd8;
+  --ambient-secondary: #957fb8;
+  --ambient-cyan: #7aa89f;
+  --code-canvas: #111116;
+  --glass-cast: #1f1f28;
+  --shadow-cast: rgba(126,156,216,.18);
+  --selection: rgba(126,156,216,.25);
+}
+:root[data-theme="nord"] {
+  --page: #191c23;
+  --surface: #222730;
+  --surface-2: #2e3440;
+  --surface-3: #3b4252;
+  --border: rgba(129,161,193,.24);
+  --text: #d8dee9;
+  --muted: #667080;
+  --accent: #81a1c1;
+  --accent-2: #b48ead;
+  --cyan: #88c0d0;
+  --green: #a3be8c;
+  --yellow: #ebcb8b;
+  --red: #bf616a;
+  --ambient-primary: #81a1c1;
+  --ambient-secondary: #b48ead;
+  --ambient-cyan: #88c0d0;
+  --code-canvas: #191c23;
+  --glass-cast: #2e3440;
+  --shadow-cast: rgba(129,161,193,.18);
+  --selection: rgba(136,192,208,.25);
+}
+:root[data-theme="lost-mary"] {
+  color-scheme: dark;
+  --page: #050702;
+  --surface: #0a0e05;
+  --surface-2: #11190a;
+  --surface-3: #1c2910;
+  --border: rgba(213,255,43,.25);
+  --text: #f5ffd9;
+  --muted: #839169;
+  --accent: #ffe600;
+  --accent-2: #6dff3f;
+  --cyan: #baff31;
+  --green: #6dff3f;
+  --yellow: #ffe600;
+  --red: #ff3b30;
+  --ambient-primary: #ffe600;
+  --ambient-secondary: #6dff3f;
+  --ambient-cyan: #ff3b30;
+  --code-canvas: #030501;
+  --glass-cast: #11190a;
+  --shadow-cast: rgba(173,255,30,.18);
+  --selection: rgba(255,230,0,.25);
+}
+:root[data-theme="matte-black"] {
+  --page: #050505;
+  --surface: #0d0d0d;
+  --surface-2: #121212;
+  --surface-3: #1e1e1e;
+  --border: rgba(230,142,13,.22);
+  --text: #eaeaea;
+  --muted: #666;
+  --accent: #e68e0d;
+  --accent-2: #d35f5f;
+  --cyan: #bebebe;
+  --green: #ffc107;
+  --yellow: #f59e0b;
+  --red: #b91c1c;
+  --ambient-primary: #e68e0d;
+  --ambient-secondary: #b91c1c;
+  --ambient-cyan: #bebebe;
+  --code-canvas: #050505;
+  --glass-cast: #121212;
+  --shadow-cast: rgba(230,142,13,.17);
+  --selection: rgba(230,142,13,.24);
+}
+:root[data-theme="hackerman"] {
+  --page: #030307;
+  --surface: #080910;
+  --surface-2: #0b0c16;
+  --surface-3: #151828;
+  --border: rgba(80,248,114,.22);
+  --text: #ddf7ff;
+  --muted: #6a6e95;
+  --accent: #50f872;
+  --accent-2: #829dd4;
+  --cyan: #7cf8f7;
+  --green: #4fe88f;
+  --yellow: #50f7d4;
+  --red: #85ff9d;
+  --ambient-primary: #50f872;
+  --ambient-secondary: #829dd4;
+  --ambient-cyan: #7cf8f7;
+  --code-canvas: #030307;
+  --glass-cast: #0b0c16;
+  --shadow-cast: rgba(80,248,114,.2);
+  --selection: rgba(80,248,114,.23);
+}
+:root[data-theme="reaper-blood"] {
+  --page: #080308;
+  --surface: #110711;
+  --surface-2: #1b0c18;
+  --surface-3: #2b1123;
+  --border: rgba(255,49,95,.28);
+  --text: #fff1f4;
+  --muted: #a97886;
+  --accent: #ff315f;
+  --accent-2: #a84dff;
+  --cyan: #ff784f;
+  --green: #55e6a5;
+  --yellow: #ffc857;
+  --red: #ff315f;
+  --ambient-primary: #ff315f;
+  --ambient-secondary: #a84dff;
+  --ambient-cyan: #ff784f;
+  --code-canvas: #060205;
+  --glass-cast: #1b0c18;
+  --shadow-cast: rgba(255,49,95,.22);
+  --selection: rgba(255,49,95,.3);
+}
+:root[data-theme="reaper-void"] {
+  --page: #020106;
+  --surface: #070510;
+  --surface-2: #100a20;
+  --surface-3: #1c1235;
+  --border: rgba(122,60,255,.3);
+  --text: #f7f2ff;
+  --muted: #7d729a;
+  --accent: #7a3cff;
+  --accent-2: #e349ff;
+  --cyan: #00e5ff;
+  --green: #45f2b1;
+  --yellow: #ffd166;
+  --red: #ff4d8d;
+  --ambient-primary: #7a3cff;
+  --ambient-secondary: #e349ff;
+  --ambient-cyan: #00e5ff;
+  --code-canvas: #010104;
+  --glass-cast: #100a20;
+  --shadow-cast: rgba(122,60,255,.24);
+  --selection: rgba(0,229,255,.25);
+}
+:root[data-theme="tokyo-neon"] {
+  --page: #080b18;
+  --surface: #0e1224;
+  --surface-2: #151a31;
+  --surface-3: #202844;
+  --border: rgba(42,195,255,.26);
+  --text: #e9f4ff;
+  --muted: #6f7ca8;
+  --accent: #2ac3ff;
+  --accent-2: #ff3dbb;
+  --cyan: #43f7ff;
+  --green: #adff2f;
+  --yellow: #ffe45e;
+  --red: #ff477e;
+  --ambient-primary: #2ac3ff;
+  --ambient-secondary: #ff3dbb;
+  --ambient-cyan: #43f7ff;
+  --code-canvas: #060914;
+  --glass-cast: #151a31;
+  --shadow-cast: rgba(42,195,255,.22);
+  --selection: rgba(255,61,187,.26);
+}
+:root[data-theme="tokyo-dusk"] {
+  --page: #171522;
+  --surface: #1e1b2c;
+  --surface-2: #28233a;
+  --surface-3: #37304d;
+  --border: rgba(139,124,255,.25);
+  --text: #f1ecff;
+  --muted: #968da9;
+  --accent: #8b7cff;
+  --accent-2: #ff7eb6;
+  --cyan: #78dce8;
+  --green: #a9dc76;
+  --yellow: #ffc66d;
+  --red: #ff6188;
+  --ambient-primary: #8b7cff;
+  --ambient-secondary: #ff7eb6;
+  --ambient-cyan: #78dce8;
+  --code-canvas: #12101b;
+  --glass-cast: #28233a;
+  --shadow-cast: rgba(139,124,255,.2);
+  --selection: rgba(255,126,182,.24);
+}
+:root[data-theme="matte-ember"] {
+  --page: #070605;
+  --surface: #0e0b08;
+  --surface-2: #17110c;
+  --surface-3: #251910;
+  --border: rgba(255,122,24,.25);
+  --text: #fff4e8;
+  --muted: #8f7560;
+  --accent: #ff7a18;
+  --accent-2: #db2b39;
+  --cyan: #ffd166;
+  --green: #8fd694;
+  --yellow: #ffbf46;
+  --red: #db2b39;
+  --ambient-primary: #ff7a18;
+  --ambient-secondary: #db2b39;
+  --ambient-cyan: #ffd166;
+  --code-canvas: #050403;
+  --glass-cast: #17110c;
+  --shadow-cast: rgba(255,122,24,.2);
+  --selection: rgba(255,122,24,.27);
+}
+:root[data-theme="matte-ice"] {
+  --page: #050708;
+  --surface: #0a0e10;
+  --surface-2: #10171b;
+  --surface-3: #1a272e;
+  --border: rgba(131,233,255,.23);
+  --text: #eefcff;
+  --muted: #71878d;
+  --accent: #83e9ff;
+  --accent-2: #5773ff;
+  --cyan: #d7f6ff;
+  --green: #69e3b1;
+  --yellow: #ffe69a;
+  --red: #ff6b83;
+  --ambient-primary: #83e9ff;
+  --ambient-secondary: #5773ff;
+  --ambient-cyan: #d7f6ff;
+  --code-canvas: #030506;
+  --glass-cast: #10171b;
+  --shadow-cast: rgba(131,233,255,.18);
+  --selection: rgba(131,233,255,.24);
+}
+:root[data-theme="hackerman-amber"] {
+  --page: #070603;
+  --surface: #0d0b05;
+  --surface-2: #171308;
+  --surface-3: #27200d;
+  --border: rgba(255,191,54,.25);
+  --text: #fff8dc;
+  --muted: #8f8057;
+  --accent: #ffbf36;
+  --accent-2: #ff6b2c;
+  --cyan: #ffef9a;
+  --green: #c7ef4b;
+  --yellow: #ffbf36;
+  --red: #ff5d3d;
+  --ambient-primary: #ffbf36;
+  --ambient-secondary: #ff6b2c;
+  --ambient-cyan: #ffef9a;
+  --code-canvas: #040301;
+  --glass-cast: #171308;
+  --shadow-cast: rgba(255,191,54,.2);
+  --selection: rgba(255,191,54,.26);
+}
+:root[data-theme="hackerman-ghost"] {
+  --page: #020807;
+  --surface: #06100e;
+  --surface-2: #091b17;
+  --surface-3: #0e2b25;
+  --border: rgba(47,255,193,.24);
+  --text: #e5fff8;
+  --muted: #5d8d80;
+  --accent: #2fffc1;
+  --accent-2: #00a8ff;
+  --cyan: #b8fff1;
+  --green: #2fffc1;
+  --yellow: #adff7d;
+  --red: #64ffda;
+  --ambient-primary: #2fffc1;
+  --ambient-secondary: #00a8ff;
+  --ambient-cyan: #b8fff1;
+  --code-canvas: #010504;
+  --glass-cast: #091b17;
+  --shadow-cast: rgba(47,255,193,.19);
+  --selection: rgba(47,255,193,.24);
+}
+:root[data-theme="catppuccin-latte"],
+:root[data-theme="rose-pine"] {
+  --edge: inset 0 1px rgba(255, 255, 255, .55);
+  --shadow-rgb: 60, 60, 90;
+  --code-line-number: rgba(60, 60, 90, .45);
+}

@@ -5,6 +5,28 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- Redesigned the desktop chrome: the workspace header row is gone, repository actions (pull, editor, GitHub, clone) live in the titlebar, and the navigation rail is a fixed-width strip with always-visible labels instead of expanding over content on hover.
+- Introduced a real type scale (nothing smaller than 10px), a single interactive highlight colour, consistent corner radii, and a restrained glow budget so active states and primary actions stand out.
+- Consolidated three accreted stylesheets into `styles.css`, `themes.css`, and `splash.css`, removing dead rules and every `!important` override pass.
+- Moved linting behind a Lint button in the reader header so the code canvas is not pushed down by a permanent toolbar.
+- Replaced the branch-count "signal" bar on Stats with a contributor commit-share bar.
+- Shortened the launch splash to five seconds and made it skippable with a click anywhere.
+- Toggling the file tree now uses `T` instead of `Tab`, so keyboard focus navigation works as expected.
+
+### Added
+
+- Failures now surface as a dismissible toast with a "View logs" shortcut instead of only a badge on the rail.
+- The command palette lists local repositories ("Switch to …") plus Pull latest and Refresh repository.
+- Merged pull requests are labelled distinctly from open ones in Reviews.
+
+### Fixed
+
+- The branch picker no longer displays the first branch when the current branch is unknown; it shows a placeholder instead.
+- The whole-app scale transform now sizes the shell from the real viewport and the root element is clipped, so 120% scale fills the window instead of leaving a gap, and keyboard navigation no longer scrolls the whole page out of view.
+- The Selenium smoke harness mocks the Git identity call, so the suite runs again instead of crashing the titlebar on startup.
+
 ## [0.1.17] - 2026-09-03
 
 ### Fixed

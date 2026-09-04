@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Braces, Command, GitPullRequestArrow, Keyboard, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, Braces, Command, FolderGit2, GitPullRequestArrow, Keyboard, RefreshCw, X, type LucideIcon } from "lucide-react";
 import { api } from "./api";
 import type { Bootstrap, Repo, ThemeName, ViewName } from "./types";
 import { FirstRunGuide } from "./components/FirstRunGuide";
@@ -8,10 +8,11 @@ import { CodeView } from "./features/code/CodeView";
 import { HistoryView, ReviewsView, StatsView } from "./features/repository/RepositoryViews";
 import { AnalysisView, SecurityView, ToolsView } from "./features/operations/OperationViews";
 import { EmptyWorkspace, LogsView, SettingsView, ThemeSwitcher, themes, type LogEntry } from "./features/settings/SettingsViews";
-import { Loading, Rail, RemoteRepositoryNotice, Titlebar, WorkspaceHeader, destinations, isEditingTarget } from "./features/shell/Shell";
+import { Loading, Rail, RemoteRepositoryNotice, Titlebar, destinations, isEditingTarget } from "./features/shell/Shell";
 import { updateViewportUnits } from "./viewport";
 
 type AppCommand = { id: string; label: string; detail: string; keys: string[]; icon: LucideIcon; run: () => void };
+type Toast = { id: number; message: string };
 
 // App coordinates the small amount of shared desktop navigation state.
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
   });
   const [error, setError] = useState("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [splashReady, setSplashReady] = useState(() => Date.now() - Number(localStorage.getItem("abduction-splash-seen") ?? 0) < 6 * 60 * 60 * 1000);
   const [guideOpen, setGuideOpen] = useState(() => localStorage.getItem("abduction-guide-seen") !== "1");
   const [emptySetupDismissed, setEmptySetupDismissed] = useState(false);
@@ -32,12 +34,18 @@ export default function App() {
   const [repositoryEpoch, setRepositoryEpoch] = useState(0);
   const repositoryFingerprint = useRef("");
 
-  // recordError retains actionable failures in the diagnostic workspace.
+  // dismissToast removes one transient failure notice.
+  const dismissToast = useCallback((toastID: number) => setToasts((currentToasts) => currentToasts.filter((toast) => toast.id !== toastID)), []);
+
+  // recordError retains actionable failures in the diagnostic workspace and surfaces them briefly as a toast.
   const recordError = useCallback((message: string) => {
     const normalizedMessage = message.trim() || "Unknown application error";
+    const toastID = Date.now() + Math.random();
     setError(normalizedMessage);
     setLogs((currentLogs) => [...currentLogs.slice(-249), { id: Date.now() + currentLogs.length, timestamp: new Date().toISOString(), level: "error", message: normalizedMessage }]);
-  }, []);
+    setToasts((currentToasts) => [...currentToasts.slice(-2), { id: toastID, message: normalizedMessage }]);
+    window.setTimeout(() => dismissToast(toastID), 7000);
+  }, [dismissToast]);
 
   const refreshActiveRepository = useCallback(async () => {
     if (!selectedRepo?.path) return;
@@ -116,10 +124,15 @@ export default function App() {
 
   const commands = useMemo<AppCommand[]>(() => [
     ...destinations.map((destination) => ({ id: `view.${destination.name}`, label: `Open ${destination.label}`, detail: "Navigate", keys: [destination.key], icon: destination.icon, run: () => setView(destination.name) })),
-    ...(selectedRepo?.path ? [{ id: "repository.editor", label: "Open repository in editor", detail: selectedRepo.name, keys: ["E"], icon: Braces, run: () => { api.openInEditor(selectedRepo.path, ""); } }] : []),
+    ...(selectedRepo?.path ? [
+      { id: "repository.pull", label: "Pull latest", detail: selectedRepo.name, keys: [], icon: ArrowDownToLine, run: () => { api.pullLatest(selectedRepo.path).then(refreshActiveRepository).catch((reason: unknown) => recordError(String(reason))); } },
+      { id: "repository.refresh", label: "Refresh repository", detail: "Re-read files, branches, and history", keys: [], icon: RefreshCw, run: () => { void refreshActiveRepository().catch((reason: unknown) => recordError(String(reason))); } },
+      { id: "repository.editor", label: "Open repository in editor", detail: selectedRepo.name, keys: ["E"], icon: Braces, run: () => { api.openInEditor(selectedRepo.path, ""); } },
+    ] : []),
     { id: "repository.github", label: "Open repository on GitHub", detail: selectedRepo?.fullName ?? "No GitHub remote", keys: ["G"], icon: GitPullRequestArrow, run: () => { if (selectedRepo?.githubUrl) api.openOnGitHub(selectedRepo); } },
     { id: "help.shortcuts", label: "Show keyboard shortcuts", detail: "Help", keys: ["?"], icon: Keyboard, run: () => setShortcutsOpen(true) },
-  ], [selectedRepo]);
+    ...(bootstrap?.repos ?? []).filter((repository) => repository.path && repository.path !== selectedRepo?.path).map((repository) => ({ id: `repository.switch.${repository.fullName}`, label: `Switch to ${repository.name}`, detail: repository.fullName, keys: [], icon: FolderGit2, run: () => setSelectedRepo(repository) })),
+  ], [selectedRepo, bootstrap?.repos, refreshActiveRepository, recordError]);
 
   useEffect(() => {
     function handleGlobalShortcut(event: KeyboardEvent) {
@@ -143,10 +156,9 @@ export default function App() {
   if (!bootstrap) return <Loading error={error} />;
   return (
     <div className={bootstrap.platform === "macOS" ? "shell shell--mac" : "shell"}>
-      <Titlebar version={bootstrap.version} platform={bootstrap.platform} repos={bootstrap.repos} selectedRepo={selectedRepo} onSelect={setSelectedRepo} onCloned={(repository) => { setSelectedRepo(repository); api.refreshRepos().then((repositories) => setBootstrap({ ...bootstrap, repos: repositories })).catch((reason: unknown) => recordError(String(reason))); }} onCommand={() => setCommandOpen(true)} onShortcuts={() => setShortcutsOpen(true)} onError={recordError} />
-      <Rail view={view} onView={setView} errorCount={logs.length} />
+      <Titlebar platform={bootstrap.platform} repos={bootstrap.repos} selectedRepo={selectedRepo} onSelect={setSelectedRepo} onCloned={(repository) => { setSelectedRepo(repository); api.refreshRepos().then((repositories) => setBootstrap({ ...bootstrap, repos: repositories })).catch((reason: unknown) => recordError(String(reason))); }} onClone={cloneRemoteRepository} onRefresh={refreshActiveRepository} onCommand={() => setCommandOpen(true)} onShortcuts={() => setShortcutsOpen(true)} onError={recordError} />
+      <Rail view={view} onView={setView} errorCount={logs.length} version={bootstrap.version} />
       <main className="workspace">
-        <WorkspaceHeader repo={selectedRepo} onClone={cloneRemoteRepository} onRefresh={refreshActiveRepository} onError={recordError} />
         {view === "themes" ? <ThemeSwitcher theme={theme} onTheme={updateTheme} /> : view === "logs" ? <LogsView logs={logs} onClear={() => setLogs([])} /> : view === "settings" ? <SettingsView bootstrap={bootstrap} onSaved={(nextBootstrap) => { setBootstrap(nextBootstrap); setTheme(nextBootstrap.config.theme); setSelectedRepo(nextBootstrap.repos.find((repository) => repository.path === selectedRepo?.path) ?? nextBootstrap.repos[0] ?? null); }} onError={recordError} /> : !selectedRepo ? <EmptyWorkspace workspace={bootstrap.config.workspace} onSetup={() => { setEmptySetupDismissed(false); setGuideOpen(true); }} onSettings={() => setView("settings")} /> : !selectedRepo.path && view !== "code" ? <RemoteRepositoryNotice repo={selectedRepo} /> : view === "code" ?
           <CodeView key={`${selectedRepo.path || selectedRepo.fullName}-${theme}-${repositoryEpoch}`} repo={selectedRepo} theme={theme} onError={recordError} /> : view === "history" ?
           <HistoryView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} onError={recordError} /> : view === "stats" ?
@@ -156,6 +168,7 @@ export default function App() {
           view === "analysis" ? <AnalysisView key={`${selectedRepo.path}-${repositoryEpoch}`} repo={selectedRepo} tools={bootstrap.tools} onError={recordError} /> :
           <ToolsView tools={bootstrap.tools} />}
       </main>
+      {toasts.length ? <div className="toast-stack" aria-live="polite">{toasts.map((toast) => <div className="toast" role="status" key={toast.id}><AlertTriangle size={15}/><p>{toast.message}</p><button className="ghost" onClick={() => { setView("logs"); dismissToast(toast.id); }}>View logs</button><button className="icon-button" aria-label="Dismiss notification" onClick={() => dismissToast(toast.id)}><X size={13}/></button></div>)}</div> : null}
       {commandOpen ? <CommandPalette commands={commands} onClose={() => setCommandOpen(false)}/> : null}
       {shortcutsOpen ? <ShortcutHelp onClose={() => setShortcutsOpen(false)}/> : null}
       {guideOpen || (!emptySetupDismissed && bootstrap.repos.length === 0) ? <FirstRunGuide setupRequired={bootstrap.repos.length === 0} workspace={bootstrap.config.workspace} onBrowse={() => api.selectWorkspace()} onConnect={async (workspace) => { const nextBootstrap = await api.updateConfig({ ...bootstrap.config, workspace }); if (nextBootstrap.error) throw new Error(nextBootstrap.error); setBootstrap(nextBootstrap); setSelectedRepo(nextBootstrap.repos[0] ?? null); return nextBootstrap.repos.length; }} onClose={() => { localStorage.setItem("abduction-guide-seen", "1"); setGuideOpen(false); setEmptySetupDismissed(true); }}/> : null}
@@ -177,14 +190,14 @@ function CommandPalette({ commands, onClose }: { commands: AppCommand[]; onClose
     if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((currentIndex) => (currentIndex + (event.key === "ArrowDown" ? 1 : -1) + filteredCommands.length) % Math.max(filteredCommands.length, 1)); }
     if (event.key === "Enter" && filteredCommands[activeIndex]) { event.preventDefault(); runCommand(filteredCommands[activeIndex]); }
   }
-  return <div className="command-backdrop" onMouseDown={onClose}><section className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={(event) => event.stopPropagation()}><header><Command size={18}/><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleKey} placeholder="Type a command…" aria-label="Search commands"/><kbd>esc</kbd></header><div className="command-list" role="listbox">{filteredCommands.map((command, commandIndex) => <button key={command.id} role="option" aria-selected={commandIndex === activeIndex} className={commandIndex === activeIndex ? "command-item command-item--active" : "command-item"} onMouseEnter={() => setActiveIndex(commandIndex)} onClick={() => runCommand(command)}><span className="command-item__icon"><command.icon size={17}/></span><span><strong>{command.label}</strong><small>{command.detail}</small></span><span className="command-keys">{command.keys.map((key) => <kbd key={key}>{key}</kbd>)}</span></button>)}{!filteredCommands.length ? <div className="command-empty">No matching command</div> : null}</div><footer><span><kbd>↑↓</kbd> select</span><span><kbd>↵</kbd> run</span><span>{filteredCommands.length} commands</span></footer></section></div>;
+  return <div className="command-backdrop" onMouseDown={onClose}><section className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={(event) => event.stopPropagation()}><header><Command size={18}/><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={handleKey} placeholder="Type a command or repository…" aria-label="Search commands"/><kbd>esc</kbd></header><div className="command-list" role="listbox">{filteredCommands.map((command, commandIndex) => <button key={command.id} role="option" aria-selected={commandIndex === activeIndex} className={commandIndex === activeIndex ? "command-item command-item--active" : "command-item"} onMouseEnter={() => setActiveIndex(commandIndex)} onClick={() => runCommand(command)}><span className="command-item__icon"><command.icon size={17}/></span><span><strong>{command.label}</strong><small>{command.detail}</small></span><span className="command-keys">{command.keys.map((key) => <kbd key={key}>{key}</kbd>)}</span></button>)}{!filteredCommands.length ? <div className="command-empty">No matching command</div> : null}</div><footer><span><kbd>↑↓</kbd> select</span><span><kbd>↵</kbd> run</span><span>{filteredCommands.length} commands</span></footer></section></div>;
 }
 
 // ShortcutHelp keeps the complete keyboard model discoverable inside the application.
 function ShortcutHelp({ onClose }: { onClose: () => void }) {
   const groups = [
-    { label: "Navigate", shortcuts: [["1–9", "Open primary view"], ["0", "Open settings"], ["⌘/Ctrl K", "Command palette"], ["⌘/Ctrl P", "Repository switcher"], ["[  ]", "Previous / next repository"]] },
-    { label: "Work", shortcuts: [["/", "Focus repository search"], ["J K / ↑ ↓", "Move through items"], ["Enter", "Open or run selected item"], ["← →", "Collapse or expand folder"], ["Esc", "Close the active layer"]] },
+    { label: "Navigate", shortcuts: [["1–9", "Open primary view"], ["0", "Open settings"], ["⌘/Ctrl K", "Command palette"], ["⌘/Ctrl P", "Repository switcher"], ["[  ]", "Previous / next repository"], ["Esc", "Close the active layer"]] },
+    { label: "Work", shortcuts: [["/", "Focus repository search"], ["T", "Show or hide the file tree"], ["E", "Open repository in editor"], ["G", "Open repository on GitHub"], ["J K / ↑ ↓", "Move through items"], ["Enter", "Open or run selected item"], ["← →", "Collapse or expand folder"]] },
   ];
   return <div className="command-backdrop" onMouseDown={onClose}><section className="shortcut-help" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" onMouseDown={(event) => event.stopPropagation()}><header><div><span className="eyebrow">Input system</span><h2>Move at thought speed</h2></div><button onClick={onClose} aria-label="Close shortcut help">×</button></header><div>{groups.map((group) => <article key={group.label}><h3>{group.label}</h3>{group.shortcuts.map(([keys, label]) => <div key={keys}><kbd>{keys}</kbd><span>{label}</span></div>)}</article>)}</div><footer>Shortcuts pause automatically while you type in a field.</footer></section></div>;
 }

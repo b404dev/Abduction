@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
-import type { Commit, LanguageStat, PullRequest, PullRequestDetail, Repo, RepositoryStats } from "../../types";
+import type { Commit, ContributorStat, LanguageStat, PullRequest, PullRequestDetail, Repo, RepositoryStats } from "../../types";
 
 // HistoryView renders Git's real all-ref topological graph and commit metadata.
 export function HistoryView({ repo, onError }: { repo: Repo; onError: (message: string) => void }) {
@@ -31,9 +31,9 @@ export function StatsView({ repo, onError }: { repo: Repo; onError: (message: st
   if (!statistics) return <section className="stats-view"><div className="reader__loading">measuring repository…</div></section>;
   const facts = [{ label: "Commits", value: statistics.commits.toLocaleString() }, { label: "Branches", value: statistics.branches.toLocaleString() }, { label: "Contributors", value: statistics.contributors.toLocaleString() }, { label: "Tracked files", value: statistics.files.toLocaleString() }, { label: "Source lines", value: statistics.lines.toLocaleString() }, { label: "Tracked size", value: formatBytes(statistics.bytes) }];
   return <section className="stats-view">
-    <header><div><span className="eyebrow">Repository intelligence</span><h2>{repo.fullName}</h2><p>{repo.path}</p></div><span className="stats-language">{repo.language}</span></header>
+    <header><div><span className="eyebrow">Repository intelligence</span><h2>{repo.fullName}</h2><p>{repo.path}</p></div>{repo.language ? <span className="stats-language">{repo.language}</span> : null}</header>
     <div className="stats-facts">{facts.map((fact) => <article key={fact.label}><span>{fact.label}</span><strong>{fact.value}</strong></article>)}</div>
-    <div className="stats-visuals"><LanguageDonut languages={statistics.languages}/><article className="stats-signal"><span className="eyebrow">Repository signal</span><h3>{statistics.commits.toLocaleString()} changes across {statistics.contributors} contributors</h3><div><i style={{ width: `${Math.min(100, Math.max(8, statistics.branches * 7))}%` }}/></div><p>{formatDate(statistics.firstCommit)} → {formatDate(statistics.lastCommit)}</p></article></div>
+    <div className="stats-visuals"><LanguageDonut languages={statistics.languages}/><article className="stats-signal"><span className="eyebrow">Commit share</span><h3>{statistics.commits.toLocaleString()} changes across {statistics.contributors} contributors</h3><ContributorShare contributors={statistics.contributorsByIdentity}/><p>{formatDate(statistics.firstCommit)} → {formatDate(statistics.lastCommit)}</p></article></div>
     <div className="stats-detail">
       <article><span className="eyebrow">Language footprint</span><h3>Tracked composition</h3><div className="language-bars">{statistics.languages.slice(0, 10).map((language) => <div key={language.name}><header><strong>{language.name}</strong><span>{language.percent.toFixed(1)}% · {language.files} files</span></header><div><i style={{ width: `${Math.max(language.percent, 1)}%` }}/></div></div>)}</div></article>
       <article className="activity-card"><span className="eyebrow">Activity range</span><h3>Repository lifetime</h3><dl><div><dt>First commit</dt><dd>{formatDate(statistics.firstCommit)}</dd></div><div><dt>Latest commit</dt><dd>{formatDate(statistics.lastCommit)}</dd></div><div><dt>Current branch</dt><dd>{repo.branch || "Detached HEAD"}</dd></div><div><dt>Remote</dt><dd>{repo.githubUrl || "Local only"}</dd></div></dl></article>
@@ -41,6 +41,18 @@ export function StatsView({ repo, onError }: { repo: Repo; onError: (message: st
       <article className="recent-commits-card"><span className="eyebrow">Recent work</span><h3>Who changed what</h3><div className="recent-commits">{recentCommits.map((commit) => <div key={commit.hash}><code>{commit.short}</code><p><strong>{commit.subject}</strong><small>{commit.author} · {formatDate(commit.date)}</small></p></div>)}</div></article>
     </div>
   </section>;
+}
+
+// ContributorShare draws who wrote the repository as one stacked bar with a legend.
+function ContributorShare({ contributors }: { contributors: ContributorStat[] }) {
+  const leading = contributors.slice(0, 4);
+  const remainder = contributors.slice(4).reduce((total, contributor) => total + contributor.percent, 0);
+  const segments = [...leading.map((contributor) => ({ name: contributor.name, percent: contributor.percent })), ...(remainder > 0 ? [{ name: `${contributors.length - leading.length} others`, percent: remainder }] : [])];
+  if (!segments.length) return <p>No contributor history yet.</p>;
+  return <>
+    <div className="share-bar" role="img" aria-label="Commit share by contributor">{segments.map((segment) => <i key={segment.name} style={{ width: `${Math.max(segment.percent, 1)}%` }} title={`${segment.name} · ${segment.percent.toFixed(1)}%`}/>)}</div>
+    <ul className="share-legend">{segments.map((segment) => <li key={segment.name}><i/>{segment.name} · {segment.percent.toFixed(0)}%</li>)}</ul>
+  </>;
 }
 
 function LanguageDonut({ languages }: { languages: LanguageStat[] }) {
@@ -75,7 +87,7 @@ export function ReviewsView({ repo, onError }: { repo: Repo; onError: (message: 
   return <section className={selectedNumber ? "reviews-view reviews-view--detail" : "reviews-view"}>
     <header><div><span className="eyebrow">GitHub collaboration</span><h2>Pull requests</h2></div><span className="count">{visiblePullRequests.length} / {pullRequests.length}</span></header>
     <div className="review-toolbar"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, author, branch, or number…" aria-label="Search pull requests"/>{selectedNumber ? <button className="ghost" onClick={() => { setSelectedNumber(0); setDetail(null); }}>Close detail</button> : null}</div>
-    {loading ? <div className="reader__loading">gathering reviews…</div> : <div className="reviews-layout"><div className="review-list">{visiblePullRequests.map((pullRequest) => <button className={selectedNumber === pullRequest.number ? "review-item review-item--active" : "review-item"} key={pullRequest.number} onClick={() => selectPullRequest(pullRequest)}><span className={pullRequest.state === "OPEN" ? "review-state review-state--open" : "review-state"}>{pullRequest.draft ? "draft" : pullRequest.state.toLowerCase()}</span><div><strong>#{pullRequest.number} {pullRequest.title}</strong><small>@{pullRequest.author} · {pullRequest.headBranch} → {pullRequest.baseBranch} · {formatDate(pullRequest.updated)}</small></div><span>›</span></button>)}{!visiblePullRequests.length ? <div className="empty"><h3>No matching pull requests</h3><p>Try an author, title, branch, or PR number.</p></div> : null}</div>{selectedNumber ? <PullRequestPanel repositoryPath={repo.path} detail={detail} loading={detailLoading} onError={onError}/> : null}</div>}
+    {loading ? <div className="reader__loading">gathering reviews…</div> : <div className="reviews-layout"><div className="review-list">{visiblePullRequests.map((pullRequest) => <button className={selectedNumber === pullRequest.number ? "review-item review-item--active" : "review-item"} key={pullRequest.number} onClick={() => selectPullRequest(pullRequest)}><span className={pullRequest.state === "OPEN" ? "review-state review-state--open" : pullRequest.state === "MERGED" ? "review-state review-state--merged" : "review-state"}>{pullRequest.draft ? "draft" : pullRequest.state.toLowerCase()}</span><div><strong>#{pullRequest.number} {pullRequest.title}</strong><small>@{pullRequest.author} · {pullRequest.headBranch} → {pullRequest.baseBranch} · {formatDate(pullRequest.updated)}</small></div><span>›</span></button>)}{!visiblePullRequests.length ? <div className="empty"><h3>No matching pull requests</h3><p>Try an author, title, branch, or PR number.</p></div> : null}</div>{selectedNumber ? <PullRequestPanel repositoryPath={repo.path} detail={detail} loading={detailLoading} onError={onError}/> : null}</div>}
   </section>;
 }
 
