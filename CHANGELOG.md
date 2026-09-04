@@ -5,6 +5,11 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- History, Stats, Reviews, Dependencies, Themes, and Settings scroll again; a shared panel rule had been clipping every view except Code.
+- Text stays sharp at every Text & UI scale setting. The scale is now applied with CSS `zoom`, which re-renders the interface at the chosen size, instead of a transform that stretched the rendered pixels and blurred glyphs at non-integer scales.
+
 ## [0.1.18] - 2026-09-04
 
 ### Changed

@@ -142,8 +142,10 @@ kbd {
 .shell {
   position: relative; isolation: isolate;
   display: grid; grid-template: var(--titlebar-h) minmax(0, 1fr) / var(--rail-w) minmax(0, 1fr);
-  width: calc(100vw / var(--scale)); height: calc(100vh / var(--scale));
-  transform: scale(var(--scale)); transform-origin: top left;
+  /* The UI scale preference uses zoom, not transform: zoom re-lays out the subtree at the new
+     size and rasterises text at that size, so glyphs stay crisp at 110% or 125%. A transform
+     would stretch an already-rendered raster and blur every non-integer scale. */
+  width: 100%; height: 100%; zoom: var(--scale);
   background:
     radial-gradient(900px 560px at 74% -18%, color-mix(in srgb, var(--ambient-primary) 24%, transparent), transparent 66%),
     radial-gradient(760px 520px at -10% 108%, color-mix(in srgb, var(--ambient-secondary) 20%, transparent), transparent 68%),
@@ -247,10 +249,12 @@ kbd {
 .workspace > section {
   min-width: 0; min-height: 0;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line)); border-radius: var(--r-lg);
-  background: var(--panel); overflow: hidden;
+  background: var(--panel); overflow: auto; overscroll-behavior: contain;
   box-shadow: var(--edge), var(--shadow-2), 0 0 calc(40px * var(--glow)) color-mix(in srgb, var(--ambient-primary) 10%, transparent);
   animation: view-in var(--t) var(--ease);
 }
+/* Views that own their own scroll regions (panes, streams) clip instead of scrolling as a whole. */
+.workspace > .code-layout, .workspace > .security-view, .workspace > .analysis-view, .workspace > .logs-view { overflow: hidden; }
 .workspace > .empty { place-self: center; width: min(560px, 100%); }
 .section-title, .stats-view > header, .reviews-view > header, .dependency-hero, .theme-switcher > header, .logs-view > header, .settings-view > header {
   display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 18px;
