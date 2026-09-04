@@ -5,17 +5,17 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
-<<<<<<< HEAD
-### Fixed
+## [0.1.19] - 2026-09-04
 
-- History, Stats, Reviews, Dependencies, Themes, and Settings scroll again; a shared panel rule had been clipping every view except Code.
-- Text stays sharp at every Text & UI scale setting. The scale is now applied with CSS `zoom`, which re-renders the interface at the chosen size, instead of a transform that stretched the rendered pixels and blurred glyphs at non-integer scales.
-=======
 ### Security
 
 - Upgraded `golang.org/x/crypto` to v0.55.0, which resolves CVE-2026-56854 (GO-2026-6303) in its SSH server package. Abduction does not run an SSH server and `govulncheck` reports no reachable call, so this closes the advisory rather than an exploitable path.
 - Upgraded `github.com/yuin/goldmark` to v1.7.17, which fixes a cross-site scripting issue (GO-2026-5320) in link, image, and autolink rendering that `govulncheck` reported as reachable from the Markdown reader. Rendered Markdown was already passed through the HTML sanitiser, so this removes a second line of defence's dependency on the first.
->>>>>>> 091da72 (fix: upgrade x/crypto for CVE-2026-56854 and goldmark for GO-2026-5320)
+
+### Fixed
+
+- History, Stats, Reviews, Dependencies, Themes, and Settings scroll again; a shared panel rule had been clipping every view except Code.
+- Text stays sharp at every Text & UI scale setting. The scale is now applied with CSS `zoom`, which re-renders the interface at the chosen size, instead of a transform that stretched the rendered pixels and blurred glyphs at non-integer scales.
 
 ## [0.1.18] - 2026-09-04
 
@@ -180,7 +180,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.18...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/b404dev/Abduction/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/b404dev/Abduction/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/b404dev/Abduction/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/b404dev/Abduction/compare/v0.1.15...v0.1.16
