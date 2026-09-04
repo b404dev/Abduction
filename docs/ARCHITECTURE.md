@@ -47,8 +47,9 @@ repository · code · GitHub · tools · analysis · security
 - `frontend/src/features/settings/` — themes, diagnostics, configuration, and empty-workspace guidance.
 - `frontend/src/features/shell/` — titlebar, repository picker, rail, and workspace chrome.
 - `frontend/src/components/` — reusable interface components shared by features.
-- `frontend/src/styles.css` — design tokens, themes, layout, and components.
-- `frontend/src/security.css` — focused code-search, review, and scanner surfaces.
+- `frontend/src/styles.css` — design tokens, layout, and every component, in one cascade with no override passes.
+- `frontend/src/themes.css` — one block per theme: palette, atmosphere, code canvas, glass cast, and selection colour.
+- `frontend/src/splash.css` — the animated brand pieces: alien glyph, UFO loader, and ASCII launch splash.
 
 ## Security boundaries
 

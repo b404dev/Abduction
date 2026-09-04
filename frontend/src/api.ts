@@ -54,7 +54,8 @@ function cached<T>(key: string, load: () => Promise<T>, ttl = Number.POSITIVE_IN
   const existing = queryCache.get(key);
   if (existing?.promise) return existing.promise as Promise<T>;
   if (existing && existing.expiresAt > now && "value" in existing) return Promise.resolve(existing.value as T);
-  const promise = load().then((value) => {
+  // A missing or broken bridge method rejects instead of throwing mid-render.
+  const promise = new Promise<T>((resolve) => resolve(load())).then((value) => {
     queryCache.set(key, { value, expiresAt: Date.now() + ttl });
     return value;
   }).catch((reason) => {
