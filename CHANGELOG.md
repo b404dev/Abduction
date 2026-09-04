@@ -5,6 +5,8 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-09-04
+
 ### Changed
 
 - Redesigned the desktop chrome: the workspace header row is gone, repository actions (pull, editor, GitHub, clone) live in the titlebar, and the navigation rail is a fixed-width strip with always-visible labels instead of expanding over content on hover.
@@ -166,7 +168,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.17...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.18...HEAD
+[0.1.18]: https://github.com/b404dev/Abduction/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/b404dev/Abduction/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/b404dev/Abduction/compare/v0.1.15...v0.1.16
 [0.1.15]: https://github.com/b404dev/Abduction/compare/v0.1.14...v0.1.15
