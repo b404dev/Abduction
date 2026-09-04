@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.14.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/wailsapp/wails/v2 v2.15.0
-	github.com/yuin/goldmark v1.7.4
+	github.com/yuin/goldmark v1.7.17
 )
 
 require (
@@ -37,10 +37,10 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.22 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
-	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
 
 // replace github.com/wailsapp/wails/v2 v2.15.0 => /home/bill/go/pkg/mod
