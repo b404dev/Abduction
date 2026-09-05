@@ -20,7 +20,6 @@ func ExecutablePath(binaryName string) (string, error) {
 	candidates := []string{
 		filepath.Join("/opt/homebrew/bin", binaryName),
 		filepath.Join("/usr/local/bin", binaryName),
-		filepath.Join("/usr/bin", binaryName),
 	}
 	if userHome, homeError := os.UserHomeDir(); homeError == nil {
 		candidates = append(candidates,
@@ -29,6 +28,7 @@ func ExecutablePath(binaryName string) (string, error) {
 			filepath.Join(userHome, ".nix-profile", "bin", binaryName),
 		)
 	}
+	candidates = append(candidates, filepath.Join("/usr/bin", binaryName))
 	for _, candidate := range candidates {
 		if fileInfo, statError := os.Stat(candidate); statError == nil && !fileInfo.IsDir() && fileInfo.Mode()&0o111 != 0 {
 			return candidate, nil

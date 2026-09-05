@@ -5,6 +5,12 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-09-05
+
+### Security
+
+- Upgraded `github.com/labstack/echo/v4` to v4.15.3, which fixes CVE-2026-55677 (Echo URL path decoding discrepancy) and removes the vulnerable dependency from the release.
+
 ## [0.1.19] - 2026-09-04
 
 ### Security
@@ -180,7 +186,8 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.19...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.20...HEAD
+[0.1.20]: https://github.com/b404dev/Abduction/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/b404dev/Abduction/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/b404dev/Abduction/compare/v0.1.17...v0.1.18
 [0.1.17]: https://github.com/b404dev/Abduction/compare/v0.1.16...v0.1.17
