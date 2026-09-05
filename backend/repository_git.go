@@ -21,8 +21,12 @@ func (service *RepositoryService) Commits(repositoryPath string, limit int) ([]C
 	if !IsGitRepository(repositoryPath) {
 		return nil, errors.New("not a Git repository")
 	}
+	gitBinary, lookupError := GitExecutable()
+	if lookupError != nil {
+		return nil, lookupError
+	}
 	format := "%x1e%H%x1f%h%x1f%s%x1f%an%x1f%aI%x1f%D%x1f%P"
-	command := exec.Command("git", "log", "--all", "--graph", "--topo-order", fmt.Sprintf("-%d", limit), "--date=iso-strict", "--pretty=format:"+format)
+	command := exec.Command(gitBinary, "log", "--all", "--graph", "--topo-order", fmt.Sprintf("-%d", limit), "--date=iso-strict", "--pretty=format:"+format)
 	command.Dir = repositoryPath
 	outputBytes, commandError := command.Output()
 	if commandError != nil {
@@ -55,10 +59,11 @@ func (service *RepositoryService) PullRequests(repositoryPath string) ([]PullReq
 	if !IsGitRepository(repositoryPath) {
 		return nil, errors.New("not a Git repository")
 	}
-	if _, lookupError := exec.LookPath("gh"); lookupError != nil {
+	githubBinary, lookupError := ExecutablePath("gh")
+	if lookupError != nil {
 		return nil, errors.New("GitHub CLI is not installed")
 	}
-	command := exec.Command("gh", "pr", "list", "--state", "all", "--limit", "100", "--json", "number,title,author,state,isDraft,updatedAt,url,headRefName,baseRefName")
+	command := exec.Command(githubBinary, "pr", "list", "--state", "all", "--limit", "100", "--json", "number,title,author,state,isDraft,updatedAt,url,headRefName,baseRefName")
 	command.Dir = repositoryPath
 	outputBytes, commandError := command.CombinedOutput()
 	if commandError != nil {
@@ -95,19 +100,20 @@ func (service *RepositoryService) PullRequestDetail(repositoryPath string, numbe
 	if number < 1 {
 		return PullRequestDetail{}, errors.New("pull request number must be positive")
 	}
-	if _, lookupError := exec.LookPath("gh"); lookupError != nil {
+	githubBinary, lookupError := ExecutablePath("gh")
+	if lookupError != nil {
 		return PullRequestDetail{}, errors.New("GitHub CLI is not installed")
 	}
 	pullRequestNumber := strconv.Itoa(number)
 	requestContext, cancelRequest := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancelRequest()
-	viewCommand := exec.CommandContext(requestContext, "gh", "pr", "view", pullRequestNumber, "--json", "number,title,author,state,isDraft,updatedAt,url,headRefName,baseRefName,body,additions,deletions,changedFiles,commits,reviewDecision,mergeable,files")
+	viewCommand := exec.CommandContext(requestContext, githubBinary, "pr", "view", pullRequestNumber, "--json", "number,title,author,state,isDraft,updatedAt,url,headRefName,baseRefName,body,additions,deletions,changedFiles,commits,reviewDecision,mergeable,files")
 	viewCommand.Dir = repositoryPath
 	viewBytes, viewError := viewCommand.CombinedOutput()
 	if viewError != nil {
 		return PullRequestDetail{}, fmt.Errorf("GitHub pull request #%d unavailable: %s", number, strings.TrimSpace(string(viewBytes)))
 	}
-	diffCommand := exec.CommandContext(requestContext, "gh", "pr", "diff", pullRequestNumber, "--patch")
+	diffCommand := exec.CommandContext(requestContext, githubBinary, "pr", "diff", pullRequestNumber, "--patch")
 	diffCommand.Dir = repositoryPath
 	diffBytes, diffError := diffCommand.CombinedOutput()
 	if diffError != nil {
@@ -125,7 +131,8 @@ func (service *RepositoryService) SubmitPullRequestReview(repositoryPath string,
 	if !IsGitRepository(repositoryPath) {
 		return errors.New("not a Git repository")
 	}
-	if _, lookupError := exec.LookPath("gh"); lookupError != nil {
+	githubBinary, lookupError := ExecutablePath("gh")
+	if lookupError != nil {
 		return errors.New("GitHub CLI is not installed")
 	}
 	arguments, argumentError := PullRequestReviewArguments(number, action, body)
@@ -134,7 +141,7 @@ func (service *RepositoryService) SubmitPullRequestReview(repositoryPath string,
 	}
 	requestContext, cancelRequest := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelRequest()
-	command := exec.CommandContext(requestContext, "gh", arguments...)
+	command := exec.CommandContext(requestContext, githubBinary, arguments...)
 	command.Dir = repositoryPath
 	outputBytes, commandError := command.CombinedOutput()
 	if commandError != nil {
@@ -245,7 +252,11 @@ func (service *RepositoryService) SwitchBranch(repositoryPath string, branch str
 	if !branchKnown {
 		return "", errors.New("branch is not present in this repository")
 	}
-	command := exec.Command("git", "checkout", branch)
+	gitBinary, lookupError := GitExecutable()
+	if lookupError != nil {
+		return "", lookupError
+	}
+	command := exec.Command(gitBinary, "checkout", branch)
 	command.Dir = repositoryPath
 	outputBytes, checkoutError := command.CombinedOutput()
 	if checkoutError != nil {
@@ -259,7 +270,11 @@ func (service *RepositoryService) PullLatest(repositoryPath string) (string, err
 	if !IsGitRepository(repositoryPath) {
 		return "", errors.New("not a Git repository")
 	}
-	command := exec.Command("git", "pull", "--ff-only")
+	gitBinary, lookupError := GitExecutable()
+	if lookupError != nil {
+		return "", lookupError
+	}
+	command := exec.Command(gitBinary, "pull", "--ff-only")
 	command.Dir = repositoryPath
 	outputBytes, pullError := command.CombinedOutput()
 	output := strings.TrimSpace(string(outputBytes))
@@ -280,7 +295,11 @@ func (service *RepositoryService) Fingerprint(repositoryPath string) (string, er
 	if !IsGitRepository(repositoryPath) {
 		return "", errors.New("not a Git repository")
 	}
-	statusCommand := exec.Command("git", "status", "--porcelain=v1", "-z", "--untracked-files=all")
+	gitBinary, lookupError := GitExecutable()
+	if lookupError != nil {
+		return "", lookupError
+	}
+	statusCommand := exec.Command(gitBinary, "status", "--porcelain=v1", "-z", "--untracked-files=all")
 	statusCommand.Dir = repositoryPath
 	statusBytes, statusError := statusCommand.Output()
 	if statusError != nil {
@@ -309,6 +328,21 @@ func (service *RepositoryService) Fingerprint(repositoryPath string) (string, er
 	return fmt.Sprintf("%x", fingerprint.Sum(nil)), nil
 }
 
+// macEditorApplications maps common editor CLI commands to the macOS
+// application `open -a` can launch when the CLI shim was never installed
+// into PATH (for example, VS Code's "Shell Command: Install 'code' command"
+// was never run).
+var macEditorApplications = map[string]string{
+	"code":          "Visual Studio Code",
+	"code-insiders": "Visual Studio Code - Insiders",
+	"cursor":        "Cursor",
+	"subl":          "Sublime Text",
+	"zed":           "Zed",
+	"webstorm":      "WebStorm",
+	"idea":          "IntelliJ IDEA",
+	"atom":          "Atom",
+}
+
 // OpenInEditor starts the configured editor without blocking Abduction.
 func (service *RepositoryService) OpenInEditor(repositoryPath string, relativePath string) error {
 	targetPath, pathError := SafeRepositoryPath(repositoryPath, relativePath)
@@ -319,8 +353,31 @@ func (service *RepositoryService) OpenInEditor(repositoryPath string, relativePa
 	if len(editorParts) == 0 {
 		return errors.New("no editor configured")
 	}
-	commandArguments := append(editorParts[1:], targetPath)
-	return exec.Command(editorParts[0], commandArguments...).Start()
+	if editorBinary, lookupError := ExecutablePath(editorParts[0]); lookupError == nil {
+		commandArguments := append(editorParts[1:], targetPath)
+		return exec.Command(editorBinary, commandArguments...).Start()
+	}
+	if runtime.GOOS == "darwin" {
+		if arguments, known := macEditorLaunchArguments(editorParts, targetPath); known {
+			return exec.Command("open", arguments...).Start()
+		}
+	}
+	return fmt.Errorf("editor %q not found", editorParts[0])
+}
+
+// macEditorLaunchArguments builds the `open` argument vector that launches a
+// known editor application directly when its CLI shim is not on PATH.
+func macEditorLaunchArguments(editorParts []string, targetPath string) ([]string, bool) {
+	applicationName, known := macEditorApplications[editorParts[0]]
+	if !known {
+		return nil, false
+	}
+	arguments := []string{"-a", applicationName, targetPath}
+	if len(editorParts) > 1 {
+		arguments = append(arguments, "--args")
+		arguments = append(arguments, editorParts[1:]...)
+	}
+	return arguments, true
 }
 
 // SafeRepositoryPath resolves a path and proves that it remains inside its repository.
@@ -347,7 +404,11 @@ func IsGitRepository(repositoryPath string) bool {
 
 // RunGit returns trimmed stdout for a small read-only Git query.
 func RunGit(repositoryPath string, arguments ...string) (string, error) {
-	command := exec.Command("git", arguments...)
+	gitBinary, lookupError := GitExecutable()
+	if lookupError != nil {
+		return "", lookupError
+	}
+	command := exec.Command(gitBinary, arguments...)
 	command.Dir = repositoryPath
 	outputBytes, commandError := command.CombinedOutput()
 	if commandError != nil {
@@ -358,6 +419,30 @@ func RunGit(repositoryPath string, arguments ...string) (string, error) {
 		return "", &GitCommandError{Arguments: append([]string(nil), arguments...), Output: message, Err: commandError}
 	}
 	return strings.TrimSpace(string(outputBytes)), nil
+}
+
+// GitIdentity returns the effective Git author identity for a repository, or
+// the machine-wide identity when repositoryPath is empty.
+func (service *RepositoryService) GitIdentity(repositoryPath string) (GitIdentity, error) {
+	name, nameError := gitConfigValue(repositoryPath, "user.name")
+	if nameError != nil {
+		return GitIdentity{}, nameError
+	}
+	email, emailError := gitConfigValue(repositoryPath, "user.email")
+	if emailError != nil {
+		return GitIdentity{}, emailError
+	}
+	return GitIdentity{Name: name, Email: email}, nil
+}
+
+// gitConfigValue reads one configuration key, treating an unset key as an
+// empty value rather than an error.
+func gitConfigValue(repositoryPath string, key string) (string, error) {
+	value, valueError := RunGit(repositoryPath, "config", "--get", key)
+	if valueError != nil && !isGitExitCode(valueError, 1) {
+		return "", valueError
+	}
+	return value, nil
 }
 
 // RemoteIdentity extracts an owner, repository name, and browser URL from origin.

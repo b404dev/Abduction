@@ -19,13 +19,13 @@ export function Splash({ onComplete }: { onComplete: () => void }) {
   const [quoteVisible, setQuoteVisible] = useState(false);
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const revealTimer = window.setTimeout(() => setQuoteVisible(true), reducedMotion ? 300 : 3000);
-    const completeTimer = window.setTimeout(onComplete, reducedMotion ? 5300 : 8000);
+    const revealTimer = window.setTimeout(() => setQuoteVisible(true), reducedMotion ? 300 : 1600);
+    const completeTimer = window.setTimeout(onComplete, reducedMotion ? 3000 : 5000);
     function handleStart(event: KeyboardEvent) { if (event.key === "Enter") onComplete(); }
     window.addEventListener("keydown", handleStart);
     return () => { window.clearTimeout(revealTimer); window.clearTimeout(completeTimer); window.removeEventListener("keydown", handleStart); };
   }, [onComplete]);
-  return <main className="splash splash--ascii" aria-label={`Starting Abduction: abducting ${target}`}>
+  return <main className="splash splash--ascii" aria-label={`Starting Abduction: abducting ${target}`} onClick={onComplete}>
     <div className="ascii-aurora" aria-hidden/>
     <div className="ascii-stars" aria-hidden>{"·    .        ✦              .        *\n       *            ·    .         +\n  .          +                 ·          .\n          ·        *       .          ✦\n *     .        ·       +        ."}</div>
     <pre className="ascii-moon" aria-hidden>{"    .-'''-.\n  .'  ·  . '.\n / .   ◦    ·\\\n|   ·    .   |\n \\  .  ·   /\n  '._   _.'\n     '''"}</pre>
@@ -35,6 +35,6 @@ export function Splash({ onComplete }: { onComplete: () => void }) {
     <pre className="ascii-hills" aria-hidden>{"             __..---~~~~---..__                    __..--~~--..__\n      _..--''                    ''--..__    __..--'              '--.._"}</pre>
     <pre className="ascii-woods" aria-hidden>{"      /\\          /\\    /\\            /\\       /\\       /\\\n  /\\/▓▓\\ /\\    /▓▓\\  /▓▓\\   /\\    /▓▓\\ /\\  /▓▓\\     /▓▓\\\n /▓▓▓▓▓▓▓\\▓▓\\  /▓▓▓▓\\/▓▓▓▓\\ /▓▓\\  /▓▓▓▓▓▓▓\\/▓▓▓▓\\ /\\/▓▓▓▓\\\n   ||  ||   ||      ||    ||     ||      ||  ||   ||     ||  ||\n...||..||...||......||....||.....||......||..||...||.....||..||...\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"}</pre>
     <div className="splash__identity"><h1>[ ABDUCTION ]</h1><p>{target === "code" ? "YOUR CODE HAS BEEN SELECTED" : `${target.toUpperCase()} ENCOUNTER IN PROGRESS`}</p><span>&gt; establishing repository contact_</span></div>
-    {quoteVisible ? <section className="splash-encounter" aria-live="polite"><figure className="encounter-quote"><blockquote>&ldquo;{encounter.quote}&rdquo;</blockquote><figcaption><strong>{encounter.witness}</strong><span>{encounter.detail}</span></figcaption></figure><button onClick={onComplete}>Press Enter to start <span>auto-start in 5 seconds</span></button></section> : null}
+    {quoteVisible ? <section className="splash-encounter" aria-live="polite"><figure className="encounter-quote"><blockquote>&ldquo;{encounter.quote}&rdquo;</blockquote><figcaption><strong>{encounter.witness}</strong><span>{encounter.detail}</span></figcaption></figure><button type="button">Press Enter to start <span>or click anywhere · auto-starts in 3s</span></button></section> : null}
   </main>;
 }

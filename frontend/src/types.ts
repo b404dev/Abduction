@@ -1,8 +1,9 @@
 export type ThemeName = "reaper-dark" | "reaper-blood" | "reaper-void" | "tokyo-night" | "tokyo-neon" | "tokyo-dusk" | "matte-black" | "matte-ember" | "matte-ice" | "hackerman" | "hackerman-amber" | "hackerman-ghost" | "catppuccin-mocha" | "catppuccin-macchiato" | "catppuccin-frappe" | "catppuccin-latte" | "everforest" | "gruvbox" | "kanagawa" | "nord" | "rose-pine" | "lost-mary";
 export type ViewName = "code" | "history" | "stats" | "reviews" | "security" | "analysis" | "tools" | "themes" | "logs" | "settings";
-export interface Config { workspace: string; editor: string; theme: ThemeName; glow: number; radius: number; glass: number }
+export interface Config { workspace: string; editor: string; theme: ThemeName; glow: number; radius: number; glass: number; scale: number }
 export interface Repo { name: string; owner: string; fullName: string; path: string; branch: string; language: string; updated: string; githubUrl: string; description: string }
 export interface RepositorySources { yours: Repo[]; organisations: Repo[]; starred: Repo[]; error: string }
+export interface GitIdentity { name: string; email: string }
 export interface TreeEntry { name: string; path: string; kind: "file" | "directory"; size: number }
 export interface SearchResult { path: string; line: number; preview: string; kind: "content" | "file" }
 export interface Document { path: string; name: string; language: string; html: string; source: string; size: number; lines: number; markdown: boolean; binary: boolean }

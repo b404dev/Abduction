@@ -16,6 +16,8 @@ export function Commits(arg1:string):Promise<Array<backend.Commit>>;
 
 export function ConfigPath():Promise<string>;
 
+export function GitIdentity(arg1:string):Promise<backend.GitIdentity>;
+
 export function Linters(arg1:string):Promise<Array<backend.LinterInfo>>;
 
 export function ListDirectory(arg1:string,arg2:string):Promise<Array<backend.TreeEntry>>;

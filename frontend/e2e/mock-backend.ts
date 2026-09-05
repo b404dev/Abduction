@@ -52,6 +52,7 @@ const config: Config = {
   glow: 1.2,
   radius: 18,
   glass: 0.8,
+  scale: 1,
 };
 
 let currentBootstrap: Bootstrap = {
@@ -159,6 +160,7 @@ export const mockBackend = {
   PullRequestDetail: async (): Promise<PullRequestDetail> => ({ number: 42, title: "Add Selenium smoke harness", author: "bill", state: "OPEN", draft: false, updated: "2026-09-01T00:00:00Z", url: "https://github.com/b404dev/Abduction/pull/42", headBranch: "feat/selenium-e2e-suite", baseBranch: "main", body: "Adds browser-level smoke coverage.", additions: 42, deletions: 3, changedFiles: 2, commits: 1, reviewDecision: "APPROVED", mergeable: "MERGEABLE", files: [{ path: "frontend/e2e/main.tsx", additions: 42, deletions: 3 }], diff: "diff --git a/frontend/e2e/main.tsx b/frontend/e2e/main.tsx\n+smoke test" }),
   SubmitPullRequestReview: async () => undefined,
   OpenURL: async () => undefined,
+  GitIdentity: async () => ({ name: "Bill", email: "bill@example.com" }),
   Branches: async () => ["main", "feat/selenium-e2e-suite"],
   SwitchBranch: async (_repositoryPath: string, branch: string) => branch,
   PullLatest: async () => "Already up to date.",

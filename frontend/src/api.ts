@@ -1,4 +1,4 @@
-import type { Bootstrap, Commit, Config, Document, LinterInfo, LintReport, PullRequest, PullRequestDetail, Repo, RepositorySources, RepositoryStats, ScannerInfo, SearchResult, ThemeName, TreeEntry } from "./types";
+import type { Bootstrap, Commit, Config, Document, GitIdentity, LinterInfo, LintReport, PullRequest, PullRequestDetail, Repo, RepositorySources, RepositoryStats, ScannerInfo, SearchResult, ThemeName, TreeEntry } from "./types";
 
 interface AbductionBackend {
   Bootstrap(): Promise<Bootstrap>;
@@ -26,6 +26,7 @@ interface AbductionBackend {
   PullRequestDetail(repositoryPath: string, number: number): Promise<PullRequestDetail>;
   SubmitPullRequestReview(repositoryPath: string, number: number, action: string, body: string): Promise<void>;
   OpenURL(address: string): Promise<void>;
+  GitIdentity(repositoryPath: string): Promise<GitIdentity>;
   Branches(repositoryPath: string): Promise<string[]>;
   SwitchBranch(repositoryPath: string, branch: string): Promise<string>;
   PullLatest(repositoryPath: string): Promise<string>;
@@ -53,7 +54,8 @@ function cached<T>(key: string, load: () => Promise<T>, ttl = Number.POSITIVE_IN
   const existing = queryCache.get(key);
   if (existing?.promise) return existing.promise as Promise<T>;
   if (existing && existing.expiresAt > now && "value" in existing) return Promise.resolve(existing.value as T);
-  const promise = load().then((value) => {
+  // A missing or broken bridge method rejects instead of throwing mid-render.
+  const promise = new Promise<T>((resolve) => resolve(load())).then((value) => {
     queryCache.set(key, { value, expiresAt: Date.now() + ttl });
     return value;
   }).catch((reason) => {
@@ -109,6 +111,7 @@ export const api = {
   pullRequestDetail: (repositoryPath: string, number: number): Promise<PullRequestDetail> => cached(cacheKey("pull-request-detail", repositoryPath, String(number)), () => backend().PullRequestDetail(repositoryPath, number), 60_000),
   submitPullRequestReview: (repositoryPath: string, number: number, action: string, body: string): Promise<void> => backend().SubmitPullRequestReview(repositoryPath, number, action, body),
   openURL: (address: string): Promise<void> => backend().OpenURL(address),
+  gitIdentity: (repositoryPath: string): Promise<GitIdentity> => cached(cacheKey("git-identity", repositoryPath), () => backend().GitIdentity(repositoryPath), 60_000),
   branches: (repositoryPath: string): Promise<string[]> => cached(cacheKey("branches", repositoryPath), () => backend().Branches(repositoryPath), 15_000),
   switchBranch: (repositoryPath: string, branch: string): Promise<string> => backend().SwitchBranch(repositoryPath, branch).then((resolvedBranch) => { invalidateRepository(repositoryPath); return resolvedBranch; }),
   pullLatest: (repositoryPath: string): Promise<string> => backend().PullLatest(repositoryPath).then((output) => { invalidateRepository(repositoryPath); queryCache.delete("bootstrap"); return output; }),

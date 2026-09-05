@@ -8,6 +8,7 @@ type Config struct {
 	Glow      float64 `json:"glow"`
 	Radius    int     `json:"radius"`
 	Glass     float64 `json:"glass"`
+	Scale     float64 `json:"scale"`
 }
 
 // Bootstrap contains the initial application state returned in one call.
@@ -31,6 +32,12 @@ type Repo struct {
 	Updated     string `json:"updated"`
 	GitHubURL   string `json:"githubUrl"`
 	Description string `json:"description"`
+}
+
+// GitIdentity describes the Git author identity active for a repository.
+type GitIdentity struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 // RepositorySources groups local and GitHub repositories for the picker.

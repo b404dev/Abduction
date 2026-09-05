@@ -91,6 +91,7 @@ export namespace backend {
 	    glow: number;
 	    radius: number;
 	    glass: number;
+	    scale: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -104,6 +105,7 @@ export namespace backend {
 	        this.glow = source["glow"];
 	        this.radius = source["radius"];
 	        this.glass = source["glass"];
+	        this.scale = source["scale"];
 	    }
 	}
 	export class Bootstrap {
@@ -219,6 +221,20 @@ export namespace backend {
 	        this.lines = source["lines"];
 	        this.markdown = source["markdown"];
 	        this.binary = source["binary"];
+	    }
+	}
+	export class GitIdentity {
+	    name: string;
+	    email: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GitIdentity(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.email = source["email"];
 	    }
 	}
 	

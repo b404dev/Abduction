@@ -5,6 +5,64 @@ All notable changes to Abduction are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-09-04
+
+### Security
+
+- Upgraded `golang.org/x/crypto` to v0.55.0, which resolves CVE-2026-56854 (GO-2026-6303) in its SSH server package. Abduction does not run an SSH server and `govulncheck` reports no reachable call, so this closes the advisory rather than an exploitable path.
+- Upgraded `github.com/yuin/goldmark` to v1.7.17, which fixes a cross-site scripting issue (GO-2026-5320) in link, image, and autolink rendering that `govulncheck` reported as reachable from the Markdown reader. Rendered Markdown was already passed through the HTML sanitiser, so this removes a second line of defence's dependency on the first.
+
+### Fixed
+
+- History, Stats, Reviews, Dependencies, Themes, and Settings scroll again; a shared panel rule had been clipping every view except Code.
+- Text stays sharp at every Text & UI scale setting. The scale is now applied with CSS `zoom`, which re-renders the interface at the chosen size, instead of a transform that stretched the rendered pixels and blurred glyphs at non-integer scales.
+
+## [0.1.18] - 2026-09-04
+
+### Changed
+
+- Redesigned the desktop chrome: the workspace header row is gone, repository actions (pull, editor, GitHub, clone) live in the titlebar, and the navigation rail is a fixed-width strip with always-visible labels instead of expanding over content on hover.
+- Introduced a real type scale (nothing smaller than 10px), a single interactive highlight colour, consistent corner radii, and a restrained glow budget so active states and primary actions stand out.
+- Consolidated three accreted stylesheets into `styles.css`, `themes.css`, and `splash.css`, removing dead rules and every `!important` override pass.
+- Moved linting behind a Lint button in the reader header so the code canvas is not pushed down by a permanent toolbar.
+- Replaced the branch-count "signal" bar on Stats with a contributor commit-share bar.
+- Shortened the launch splash to five seconds and made it skippable with a click anywhere.
+- Toggling the file tree now uses `T` instead of `Tab`, so keyboard focus navigation works as expected.
+
+### Added
+
+- Failures now surface as a dismissible toast with a "View logs" shortcut instead of only a badge on the rail.
+- The command palette lists local repositories ("Switch to …") plus Pull latest and Refresh repository.
+- Merged pull requests are labelled distinctly from open ones in Reviews.
+
+### Fixed
+
+- The branch picker no longer displays the first branch when the current branch is unknown; it shows a placeholder instead.
+- The whole-app scale transform now sizes the shell from the real viewport and the root element is clipped, so 120% scale fills the window instead of leaving a gap, and keyboard navigation no longer scrolls the whole page out of view.
+- The Selenium smoke harness mocks the Git identity call, so the suite runs again instead of crashing the titlebar on startup.
+
+## [0.1.17] - 2026-09-03
+
+### Fixed
+
+- Made the Text & UI scale control resize viewport-relative layout (modals, panes, splash) consistently with everything else, instead of leaving it measured against the real, unscaled window.
+- Restored the Open editor executable-path fix that a prior merge silently dropped, and added a macOS fallback that launches the editor's application directly (via `open -a`) when its CLI shim was never added to PATH.
+
+## [0.1.16] - 2026-09-03
+
+### Added
+
+- Added a Text & UI scale control to Settings that resizes the entire desktop chrome, including all text, live in preview.
+- Showed the active Git author identity (name and email) for the selected repository in the titlebar, so it is clear which account local commits and pushes will use.
+
+## [0.1.15] - 2026-09-03
+
+### Fixed
+
+- Made Git and GitHub CLI commands (clone, pull latest, branch switching, search, stats, pull requests) use the shared executable lookup so macOS GUI launches can find them in common user and Homebrew locations, matching the earlier fix for security scanners.
+- Made the configured editor resolve through the same executable lookup so Open editor works from a macOS GUI launch.
+- Added `/usr/bin` to the executable lookup's fallback locations, covering Git and the GitHub CLI on Linux and stock macOS installs.
+
 ## [0.1.14] - 2026-09-02
 
 ### Added
@@ -122,7 +180,12 @@ All notable changes to Abduction are documented here. This project follows
 - Preloaded remote branches as one authenticated archive in a bounded read-only memory cache so file browsing is instant after the initial load.
 - Hid every editor and local-linter action for remote-only repositories until they are cloned to disk.
 
-[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.14...HEAD
+[Unreleased]: https://github.com/b404dev/Abduction/compare/v0.1.19...HEAD
+[0.1.19]: https://github.com/b404dev/Abduction/compare/v0.1.18...v0.1.19
+[0.1.18]: https://github.com/b404dev/Abduction/compare/v0.1.17...v0.1.18
+[0.1.17]: https://github.com/b404dev/Abduction/compare/v0.1.16...v0.1.17
+[0.1.16]: https://github.com/b404dev/Abduction/compare/v0.1.15...v0.1.16
+[0.1.15]: https://github.com/b404dev/Abduction/compare/v0.1.14...v0.1.15
 [0.1.14]: https://github.com/b404dev/Abduction/compare/v0.1.13...v0.1.14
 [0.1.13]: https://github.com/b404dev/Abduction/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/b404dev/Abduction/compare/v0.1.11...v0.1.12

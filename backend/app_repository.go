@@ -114,6 +114,12 @@ func (app *App) OpenURL(address string) error {
 	return nil
 }
 
+// GitIdentity returns the Git author identity active for a repository, or
+// the machine-wide identity when no repository is selected.
+func (app *App) GitIdentity(repositoryPath string) (GitIdentity, error) {
+	return app.repository.GitIdentity(repositoryPath)
+}
+
 // Branches returns local and remote branches without duplicate names.
 func (app *App) Branches(repositoryPath string) ([]string, error) {
 	return app.branches.Get(repositoryPath, 15*time.Second, func() ([]string, error) { return app.repository.Branches(repositoryPath) })
